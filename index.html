@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>自作パチンコシミュレーター</title>
+    <style>
+        /* 画面全体を中央寄せにして、背景を暗くする簡単な装飾 */
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #222;
+        }
+        /* Matter.jsが自動生成する描画エリア(canvas)の枠線 */
+        canvas {
+            border: 4px solid #555;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+    <script src="main.js"></script>
+</body>
+</html>
