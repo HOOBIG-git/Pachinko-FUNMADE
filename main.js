@@ -137,14 +137,16 @@ function finishSpin(isWin) {
     }
 }
 
+// main.js の triggerJackpot() 関数を上書き
+
+// 大当たり演出
 function triggerJackpot() {
     isJackpot = true;
     jackpotMsgEl.style.display = 'block';
-    sound.playJackpot(); // ★追加：ファンファーレを鳴らす
+    if(typeof sound !== 'undefined') sound.playJackpot();
 
-    // ★アタッカーを開く
-    Matter.Body.setAngle(board.attackerLid, Math.PI / 180 * 45);
-    board.attackerLid.render.fillStyle = '#ff0000';
+    // ★アタッカーを開く（フタを画面外へ消し飛ばす）
+    Matter.Body.setPosition(board.attackerLid, { x: -1000, y: -1000 }); 
 
     setTimeout(() => {
         jackpotMsgEl.style.display = 'none';
@@ -152,14 +154,13 @@ function triggerJackpot() {
         isSpinning = false;
         slotEls.forEach(el => el.innerText = '0');
 
-        // ★アタッカーを閉じる
-        Matter.Body.setAngle(board.attackerLid, 0);
-        board.attackerLid.render.fillStyle = '#00ff00';
+        // ★アタッカーを閉じる（元の座標 x: 415, y: 580 に戻す）
+        // ※Board.jsで設定した元のY座標が580なら580、585なら585に合わせてください
+        Matter.Body.setPosition(board.attackerLid, { x: 415, y: 580 });
 
-        checkAndSpin(); 
+        checkAndSpin(); // 大当たり終了後に保留があれば回す
     }, 10000); 
 }
-
 // 操作関連
 window.addEventListener('mousedown', (e) => { 
     if(e.button === 0) isShooting = true;
@@ -231,6 +232,41 @@ Events.on(engine, 'collisionStart', function(event) {
                 }
             }
         }
+
+        // main.js の collisionStart イベント内に追加
+
+        // --- スルーチャッカー通過（電チューを開く＝フタを消す） ---
+        if ((bodyA.label === 'ball' && bodyB.label === 'through') ||
+            (bodyB.label === 'ball' && bodyA.label === 'through')) {
+            
+            // ★フタを画面外に飛ばして物理的に「消す」
+            Matter.Body.setPosition(board.denchuLid, { x: -1000, y: -1000 });
+            if(typeof sound !== 'undefined') sound.playChuckerIn();
+
+            // 1.5秒後に元の位置（x: 415, y: 450）に戻して「閉じる」
+            setTimeout(() => {
+                Matter.Body.setPosition(board.denchuLid, { x: 415, y: 450 });
+            }, 1500);
+        }
+        // --- ★新規追加：電チュー入賞（RUSHの大当たり判定） ---
+        if ((bodyA.label === 'ball' && bodyB.label === 'denchu') ||
+            (bodyB.label === 'ball' && bodyA.label === 'denchu')) {
+            
+            ballCount += 1; // 電チュー自体の賞球は1個
+            if (ballCountEl) ballCountEl.innerText = ballCount;
+            sound.playChuckerIn();
+
+            // ★RUSH中の大当たり抽選（エヴァ15なら継続率約81%！）
+            if (!isJackpot && Math.random() < 0.81) {
+                // アタッカーを即座に開く
+                triggerJackpot();
+            }
+
+            const ballToRemove = bodyA.label === 'ball' ? bodyA : bodyB;
+            if (ballToRemove) Composite.remove(engine.world, ballToRemove);
+        }
+
+        // （※この下に元からある「アタッカー入賞」「アウト穴」の処理が続きます）
     });
 });
 

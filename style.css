@@ -91,6 +91,11 @@ body {
 }
 
 /* 右側のパチンコ台本体 */
+#game-container { 
+    position: relative; 
+    width: 500px;  /* ★追加：幅を500pxに固定して潰れないようにする */
+    height: 700px; /* ★追加：高さも固定する */
+}
 #game-container { position: relative; }
 canvas {
     border: 4px solid #555;

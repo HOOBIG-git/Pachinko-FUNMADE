@@ -14,6 +14,7 @@ export class Board {
         this.createGuideRails(); // レール群を大幅に強化！
         this.createNails();      // レールに合わせて釘を再配置！
         this.createAttacker();
+        this.createRushElements(); // ★新規追加：これを忘れずに！
     }
 
     // 1. 外枠とアウト穴
@@ -95,25 +96,72 @@ export class Board {
         this.Composite.add(this.world, elements);
         
 
-    }    // 4. アタッカー（右打ち）
+    }    
+    // Board.js の createAttacker() メソッドを上書き
+
     createAttacker() {
         const elements = [];
+        const baseOpt = { isStatic: true, render: { fillStyle: '#888' } };
         
-        // アタッカーの箱（右下のルート内）
-        const attackerBottom = this.Bodies.rectangle(415, 630, 70, 10, { isStatic: true, render: { fillStyle: '#888' } });
-        const attackerLeft = this.Bodies.rectangle(385, 610, 10, 50, { isStatic: true, render: { fillStyle: '#888' } });
-        const attackerRight = this.Bodies.rectangle(445, 610, 10, 50, { isStatic: true, render: { fillStyle: '#888' } });
+        // 右打ちルートのガイド
+        elements.push(this.Bodies.rectangle(460, 350, 10, 400, { isStatic: true, restitution: 0.1, friction: 0, render: { fillStyle: '#88aaff' } }));
+        elements.push(this.Bodies.rectangle(370, 350, 10, 300, { isStatic: true, restitution: 0.1, friction: 0, render: { fillStyle: '#88aaff' } })); 
 
+        // アタッカーの箱
+        const attackerBottom = this.Bodies.rectangle(415, 630, 70, 10, baseOpt);
+        const attackerLeft = this.Bodies.rectangle(385, 610, 10, 50, baseOpt);
+        const attackerRight = this.Bodies.rectangle(445, 610, 10, 50, baseOpt);
+
+        // ★縁の玉溜まり防止用スロープ（そのまま）
+        const leftSlope = this.Bodies.rectangle(385, 580, 20, 10, {
+            isStatic: true, angle: Math.PI / 180 * -45, render: { visible: false } 
+        });
+        const rightSlope = this.Bodies.rectangle(445, 580, 20, 10, {
+            isStatic: true, angle: Math.PI / 180 * 45, render: { visible: false } 
+        });
+
+        // センサー
         const attackerSensor = this.Bodies.rectangle(415, 610, 50, 20, {
             isStatic: true, isSensor: true, render: { fillStyle: '#ff00ff' }, label: 'attacker'
         });
 
-        // アタッカーのフタ（少し小さく調整）
-        this.attackerLid = this.Bodies.rectangle(415, 580, 70, 10, {
+        // --- ★改修：フタを静的（isStatic: true）に戻す ---
+        // Constraint（蝶番）は使わず、シンプルな長方形に戻します。
+        // 幅を60にして、箱の中にスッポリ収まるサイズに調整しました。
+        this.attackerLid = this.Bodies.rectangle(415, 580, 60, 10, {
             isStatic: true, render: { fillStyle: '#00ff00' }
         });
 
-        elements.push(attackerBottom, attackerLeft, attackerRight, attackerSensor, this.attackerLid);
+        elements.push(attackerBottom, attackerLeft, attackerRight, leftSlope, rightSlope, attackerSensor, this.attackerLid);
+        this.Composite.add(this.world, elements);
+    }
+
+    createRushElements() {
+        const elements = [];
+        const pegOpt = { isStatic: true, restitution: 0.5, render: { fillStyle: '#ff5555' }, label: 'peg' };
+
+        // ① スルーチャッカー（玉が通過するだけの透明なセンサー）
+        // 右ガイドレールの少し下あたりに配置
+        const throughSensor = this.Bodies.rectangle(415, 380, 40, 10, {
+            isStatic: true, isSensor: true, render: { fillStyle: '#00ffff' }, label: 'through'
+        });
+        // スルーに玉を導くための釘
+        elements.push(this.Bodies.circle(385, 380, 4, pegOpt));
+        elements.push(this.Bodies.circle(445, 380, 4, pegOpt));
+
+        // ② 電チュー（スルーの下にある、開閉する小さな入賞口）
+        const denchuBottom = this.Bodies.rectangle(415, 480, 30, 10, { isStatic: true, render: { fillStyle: '#888' } });
+        const denchuSensor = this.Bodies.rectangle(415, 470, 20, 10, {
+            isStatic: true, isSensor: true, render: { fillStyle: '#ff00ff' }, label: 'denchu'
+        });
+
+        // ③ ★電チューのフタ（ハネ）
+        // アタッカーと同じように、普段は閉じていてスルー通過時に開く
+        this.denchuLid = this.Bodies.rectangle(415, 450, 40, 10, {
+            isStatic: true, render: { fillStyle: '#00ff00' }
+        });
+
+        elements.push(throughSensor, denchuBottom, denchuSensor, this.denchuLid);
         this.Composite.add(this.world, elements);
     }
 }
