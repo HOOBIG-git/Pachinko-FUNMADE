@@ -1,6 +1,7 @@
 // main.js
 import { Board } from './Board.js';
 import { Shooter } from './shooter.js'; // ★Shooter.jsファイル名の大文字小文字に注意してください
+import { Sound } from './sound.js'; // ★追加：Soundクラスをインポート
 
 const Engine = Matter.Engine,
       Render = Matter.Render,
@@ -28,6 +29,7 @@ const board = new Board(engine.world, canvasWidth, canvasHeight);
 board.build();
 
 const shooter = new Shooter(engine.world, 32, 650); 
+const sound = new Sound(); // ★追加：サウンドエンジンを生成
 
 let isShooting = false;
 let lastShotTime = 0;
@@ -138,6 +140,7 @@ function finishSpin(isWin) {
 function triggerJackpot() {
     isJackpot = true;
     jackpotMsgEl.style.display = 'block';
+    sound.playJackpot(); // ★追加：ファンファーレを鳴らす
 
     // ★アタッカーを開く
     Matter.Body.setAngle(board.attackerLid, Math.PI / 180 * 45);
@@ -158,7 +161,10 @@ function triggerJackpot() {
 }
 
 // 操作関連
-window.addEventListener('mousedown', (e) => { if(e.button === 0) isShooting = true; });
+window.addEventListener('mousedown', (e) => { 
+    if(e.button === 0) isShooting = true;
+    sound.init(); // ★追加：クリックで音声エンジンを起動（ブラウザの仕様対策）
+ });
 window.addEventListener('mouseup', (e) => { if(e.button === 0) isShooting = false; });
 window.addEventListener('mouseleave', () => { isShooting = false; });
 window.addEventListener('wheel', (event) => {
@@ -182,9 +188,16 @@ Events.on(engine, 'collisionStart', function(event) {
         const bodyA = pair.bodyA;
         const bodyB = pair.bodyB;
 
+        // ★追加：玉が釘（peg）に当たったら音を鳴らす
+        if ((bodyA.label === 'ball' && bodyB.label === 'peg') ||
+            (bodyB.label === 'ball' && bodyA.label === 'peg')) {
+            sound.playPegHit();
+        }
+
         // チャッカー（ヘソ）入賞
         if ((bodyA.label === 'ball' && bodyB.label === 'chucker') ||
             (bodyB.label === 'ball' && bodyA.label === 'chucker')) {
+            sound.playChuckerIn(); // ★追加：チャッカー入賞音を鳴らす
             startCount++;
             if (startCountEl) startCountEl.innerText = startCount;
             ballCount += 3; 
