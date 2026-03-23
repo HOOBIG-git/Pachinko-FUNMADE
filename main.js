@@ -42,6 +42,18 @@ const MAX_RESERVE = 4;
 const jackpotProbability = 0.1; 
 let currentPower = 50;
 
+// ★新規追加：ラウンド管理用の変数
+let currentRound = 0;
+let currentCount = 0;
+const MAX_ROUND = 15; // 15ラウンドまで
+const MAX_COUNT = 10; // 1ラウンド10個まで
+let roundTimer;       // ラウンドの制限時間（パンク防止）
+
+const jackpotOverlayEl = document.getElementById('jackpot-overlay');
+const flashOverlayEl = document.getElementById('flash-overlay');
+const roundDisplayEl = document.getElementById('round-display');
+const countDisplayEl = document.getElementById('count-display');
+const jackpotInfoEl = document.getElementById('jackpot-info');
 const ballCountEl = document.getElementById('ball-count');
 const startCountEl = document.getElementById('start-count');
 const reserveCountEl = document.getElementById('reserve-count'); 
@@ -137,29 +149,86 @@ function finishSpin(isWin) {
     }
 }
 
-// main.js の triggerJackpot() 関数を上書き
-
-// 大当たり演出
+// 大当たり演出の開始
 function triggerJackpot() {
     isJackpot = true;
+
+    // ★脳汁全開演出！：大当たり時に全体を激しく揺らす（MEGA SHAKE）
+    document.body.classList.add('mega-shake');
+    // 大当たりファンファーレ中は電撃オーバーレイを点滅させる
+    if (flashOverlayEl) flashOverlayEl.classList.add('flash-effect');
+    if (flashOverlayEl) flashOverlayEl.style.display = 'block';
+
     jackpotMsgEl.style.display = 'block';
-    if(typeof sound !== 'undefined') sound.playJackpot();
+    jackpotInfoEl.style.display = 'none'; // ラウンド表示UIはまだ隠しておく
+    
+    // ファンファーレを鳴らす
+    if(typeof sound !== 'undefined') sound.playMegaJackpot();
+    currentRound = 1;
 
-    // ★アタッカーを開く（フタを画面外へ消し飛ばす）
-    Matter.Body.setPosition(board.attackerLid, { x: -1000, y: -1000 }); 
-
+    // 3秒後にメッセージを消して、ラウンド表示に切り替える
     setTimeout(() => {
+        // メッセージを非表示に
         jackpotMsgEl.style.display = 'none';
-        isJackpot = false;
-        isSpinning = false;
-        slotEls.forEach(el => el.innerText = '0');
+        
+        // 代わりにラウンド表示UIを表示
+        jackpotInfoEl.style.display = 'block'; 
+        
+        // ★演出：激しい振動（SHAKE）と電撃オーバーレイ（FLASH）をストップ
+        document.body.classList.remove('mega-shake');
+        if (flashOverlayEl) flashOverlayEl.classList.remove('flash-effect');
+        if (flashOverlayEl) flashOverlayEl.style.display = 'none';
 
-        // ★アタッカーを閉じる（元の座標 x: 415, y: 580 に戻す）
-        // ※Board.jsで設定した元のY座標が580なら580、585なら585に合わせてください
-        Matter.Body.setPosition(board.attackerLid, { x: 415, y: 580 });
+        // そして第1ラウンドを開始！
+        startRound(); 
+    }, 3000); // 3秒間「GREAT JOB」を表示
+}
 
-        checkAndSpin(); // 大当たり終了後に保留があれば回す
-    }, 10000); 
+// 各ラウンドの開始処理
+function startRound() {
+    currentCount = 0; // カウントをリセット
+    roundDisplayEl.innerText = currentRound;
+    countDisplayEl.innerText = currentCount;
+
+    // ★演出：大当たり消化中はずっと盤面を虹色に光らせる（RAINBOW OVERLAY）
+    if (jackpotOverlayEl) jackpotOverlayEl.style.display = 'block';
+
+    // アタッカーを開く（幽霊状態にして玉を通す）
+    board.attackerLid.isSensor = true;
+    board.attackerLid.render.visible = false;
+
+    // もし15秒間玉が入らなければ、強制的にラウンドを終了する（パンク対策）
+    roundTimer = setTimeout(endRound, 15000);
+}
+
+// 各ラウンドの終了処理
+function endRound() {
+    clearTimeout(roundTimer); // タイマーをストップ
+
+    // ★演出：ラウンド終了時は虹色オーバーレイをストップ
+    if (jackpotOverlayEl) jackpotOverlayEl.style.display = 'none';
+
+    // アタッカーを閉じる（実体化して玉を弾く）
+    board.attackerLid.isSensor = false;
+    board.attackerLid.render.visible = true;
+
+    // （...以下はそのまま...）
+    if (currentRound < MAX_ROUND) {
+        // まだラウンドが残っている場合：2秒のインターバル（アタッカーが閉まっている時間）を挟んで次へ
+        currentRound++;
+        setTimeout(startRound, 2000); 
+    } 
+    else {
+        // 15ラウンド全て終了した場合：大当たり終了！
+        setTimeout(() => {
+            isJackpot = false;
+            isSpinning = false;
+            jackpotMsgEl.style.display = 'none';
+            jackpotInfoEl.style.display = 'none';
+            slotEls.forEach(el => el.innerText = '0');
+            checkAndSpin(); // 保留があれば次を回す
+        }, 3000); // 終了の余韻を3秒残す
+    }
 }
 // 操作関連
 window.addEventListener('mousedown', (e) => { 
@@ -189,7 +258,7 @@ Events.on(engine, 'collisionStart', function(event) {
         const bodyA = pair.bodyA;
         const bodyB = pair.bodyB;
 
-        // ★追加：玉が釘（peg）に当たったら音を鳴らす
+        // 玉が釘に当たった音
         if ((bodyA.label === 'ball' && bodyB.label === 'peg') ||
             (bodyB.label === 'ball' && bodyA.label === 'peg')) {
             sound.playPegHit();
@@ -198,25 +267,16 @@ Events.on(engine, 'collisionStart', function(event) {
         // チャッカー（ヘソ）入賞
         if ((bodyA.label === 'ball' && bodyB.label === 'chucker') ||
             (bodyB.label === 'ball' && bodyA.label === 'chucker')) {
-            sound.playChuckerIn(); // ★追加：チャッカー入賞音を鳴らす
+            sound.playChuckerIn();
             startCount++;
             if (startCountEl) startCountEl.innerText = startCount;
             ballCount += 3; 
             if (ballCountEl) ballCountEl.innerText = ballCount;
             if (reserveCount < MAX_RESERVE) {
                 reserveCount++;
-                reserveCountEl.innerText = reserveCount;
+                if (reserveCountEl) reserveCountEl.innerText = reserveCount;
                 checkAndSpin(); 
             }
-            const ballToRemove = bodyA.label === 'ball' ? bodyA : bodyB;
-            if (ballToRemove) Composite.remove(engine.world, ballToRemove);
-        }
-
-        // アタッカー（右打ち）入賞
-        if ((bodyA.label === 'ball' && bodyB.label === 'attacker') ||
-            (bodyB.label === 'ball' && bodyA.label === 'attacker')) {
-            ballCount += 15; // 15発の賞球
-            if (ballCountEl) ballCountEl.innerText = ballCount;
             const ballToRemove = bodyA.label === 'ball' ? bodyA : bodyB;
             if (ballToRemove) Composite.remove(engine.world, ballToRemove);
         }
@@ -233,40 +293,81 @@ Events.on(engine, 'collisionStart', function(event) {
             }
         }
 
-        // main.js の collisionStart イベント内に追加
-
-        // --- スルーチャッカー通過（電チューを開く＝フタを消す） ---
+        // --- スルーチャッカー通過（電チューを開く） ---
         if ((bodyA.label === 'ball' && bodyB.label === 'through') ||
             (bodyB.label === 'ball' && bodyA.label === 'through')) {
             
-            // ★フタを画面外に飛ばして物理的に「消す」
-            Matter.Body.setPosition(board.denchuLid, { x: -1000, y: -1000 });
+            board.denchuLid.isSensor = true;
+            board.denchuLid.render.visible = false;
             if(typeof sound !== 'undefined') sound.playChuckerIn();
 
-            // 1.5秒後に元の位置（x: 415, y: 450）に戻して「閉じる」
             setTimeout(() => {
-                Matter.Body.setPosition(board.denchuLid, { x: 415, y: 450 });
+                board.denchuLid.isSensor = false;
+                board.denchuLid.render.visible = true;
             }, 1500);
         }
-        // --- ★新規追加：電チュー入賞（RUSHの大当たり判定） ---
+        
+        // --- 電チュー入賞（RUSHの大当たり判定） ---
         if ((bodyA.label === 'ball' && bodyB.label === 'denchu') ||
             (bodyB.label === 'ball' && bodyA.label === 'denchu')) {
             
-            ballCount += 1; // 電チュー自体の賞球は1個
-            if (ballCountEl) ballCountEl.innerText = ballCount;
-            sound.playChuckerIn();
+            if (flashOverlayEl) flashOverlayEl.style.display = 'block';
+            setTimeout(() => {
+                if (flashOverlayEl) flashOverlayEl.style.display = 'none';
+            }, 100);
 
-            // ★RUSH中の大当たり抽選（エヴァ15なら継続率約81%！）
+            // 大当たり中（アタッカー開放中）は完全無視
+            if (isJackpot) {
+                return;
+            }
+
+            // ★復活：賞球と音の処理
+            ballCount += 1;
+            if (ballCountEl) ballCountEl.innerText = ballCount;
+            if(typeof sound !== 'undefined') sound.playChuckerIn();
+
+            // RUSH中の大当たり抽選
             if (!isJackpot && Math.random() < 0.81) {
-                // アタッカーを即座に開く
-                triggerJackpot();
+                triggerJackpot(); // 大当たり開始！
             }
 
             const ballToRemove = bodyA.label === 'ball' ? bodyA : bodyB;
             if (ballToRemove) Composite.remove(engine.world, ballToRemove);
-        }
+        }    
 
-        // （※この下に元からある「アタッカー入賞」「アウト穴」の処理が続きます）
+        // --- アタッカー（右打ち）入賞 ---
+        if ((bodyA.label === 'ball' && bodyB.label === 'attacker') ||
+            (bodyB.label === 'ball' && bodyA.label === 'attacker')) {
+            
+            if (flashOverlayEl) flashOverlayEl.style.display = 'block';
+            setTimeout(() => {
+                if (flashOverlayEl) flashOverlayEl.style.display = 'none';
+            }, 100);
+
+            // ★復活：15発の賞球処理
+            ballCount += 15; 
+            if (ballCountEl) ballCountEl.innerText = ballCount;
+            if(typeof sound !== 'undefined') sound.playAttackerHit();
+            // ★復活：カウントアップとラウンド終了処理
+            if (isJackpot) {
+                currentCount++;
+                if (countDisplayEl) countDisplayEl.innerText = currentCount;
+
+                // 10カウントでアタッカーが閉まる！
+                if (currentCount >= MAX_COUNT) {
+                    endRound();
+                }
+            }
+
+            // データカウンターの数字ギラギラ
+            if (ballCountEl) ballCountEl.style.textShadow = '0 0 15px #ffcc00, 0 0 30px #ffcc00';
+            setTimeout(() => {
+                if (ballCountEl) ballCountEl.style.textShadow = ''; 
+            }, 100);
+
+            const ballToRemove = bodyA.label === 'ball' ? bodyA : bodyB;
+            if (ballToRemove) Composite.remove(engine.world, ballToRemove);
+        }
     });
 });
 

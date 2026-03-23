@@ -112,19 +112,10 @@ export class Board {
         const attackerLeft = this.Bodies.rectangle(385, 610, 10, 50, baseOpt);
         const attackerRight = this.Bodies.rectangle(445, 610, 10, 50, baseOpt);
 
-        // ★縁の玉溜まり防止用スロープ（そのまま）
-        const leftSlope = this.Bodies.rectangle(385, 580, 20, 10, {
-            isStatic: true, angle: Math.PI / 180 * -45, render: { visible: false } 
-        });
-        const rightSlope = this.Bodies.rectangle(445, 580, 20, 10, {
-            isStatic: true, angle: Math.PI / 180 * 45, render: { visible: false } 
-        });
-
-        // センサー
-        const attackerSensor = this.Bodies.rectangle(415, 610, 50, 20, {
+        // アタッカーのセンサー（縦幅を20→30に広げて、フタのすぐ下まで拡大）
+        const attackerSensor = this.Bodies.rectangle(415, 605, 40, 30, {
             isStatic: true, isSensor: true, render: { fillStyle: '#ff00ff' }, label: 'attacker'
         });
-
         // --- ★改修：フタを静的（isStatic: true）に戻す ---
         // Constraint（蝶番）は使わず、シンプルな長方形に戻します。
         // 幅を60にして、箱の中にスッポリ収まるサイズに調整しました。
@@ -132,7 +123,7 @@ export class Board {
             isStatic: true, render: { fillStyle: '#00ff00' }
         });
 
-        elements.push(attackerBottom, attackerLeft, attackerRight, leftSlope, rightSlope, attackerSensor, this.attackerLid);
+        elements.push(attackerBottom, attackerLeft, attackerRight, attackerSensor, this.attackerLid);
         this.Composite.add(this.world, elements);
     }
 
@@ -151,10 +142,10 @@ export class Board {
 
         // ② 電チュー（スルーの下にある、開閉する小さな入賞口）
         const denchuBottom = this.Bodies.rectangle(415, 480, 30, 10, { isStatic: true, render: { fillStyle: '#888' } });
-        const denchuSensor = this.Bodies.rectangle(415, 470, 20, 10, {
+        // 電チューのセンサー（縦幅を10→20に広げて、フタのすぐ下まで拡大）
+        const denchuSensor = this.Bodies.rectangle(415, 465, 20, 20, {
             isStatic: true, isSensor: true, render: { fillStyle: '#ff00ff' }, label: 'denchu'
         });
-
         // ③ ★電チューのフタ（ハネ）
         // アタッカーと同じように、普段は閉じていてスルー通過時に開く
         this.denchuLid = this.Bodies.rectangle(415, 450, 40, 10, {
