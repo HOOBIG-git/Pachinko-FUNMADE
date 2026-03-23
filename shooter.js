@@ -24,7 +24,7 @@ export class Shooter {
         // ★全体的に強く調整しました！
         // 以前：-0.06 〜 -0.12 の範囲
         // 今回：-0.08 〜 -0.16 の範囲 (数値が大きいほど強くなります)
-        const baseForceY = -0.45 - (currentPower / 100) * 0.15;
+        const baseForceY = -0.7 - (currentPower / 100) * 0.5;
         
         // ランダムなブレはそのまま
         const forceY = baseForceY + (Math.random() * 0.004 - 0.002);
