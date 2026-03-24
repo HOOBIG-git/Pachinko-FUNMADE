@@ -215,3 +215,124 @@ canvas {
     color: #fff;
     text-shadow: 0 0 10px #00aaff;
 }
+
+/* --- スマホ用コントローラーのデザイン --- */
+#mobile-controls {
+    display: none; /* ★変更：基本（PC）は非表示にする！ */
+    justify-content: center;
+    gap: 15px;
+    width: 100%;
+    margin-top: 10px;
+    z-index: 200;
+}
+.control-btn {
+    padding: 15px 20px;
+    font-size: 20px;
+    font-weight: bold;
+    border-radius: 10px;
+    border: 2px solid #76ff03;
+    background-color: #2a1b38;
+    color: #fff;
+    box-shadow: 0 0 10px rgba(118, 255, 3, 0.4);
+    /* スマホでダブルタップズームされるのを防ぐ */
+    touch-action: manipulation; 
+    user-select: none;
+    cursor: pointer;
+}
+
+.shoot-btn {
+    background-color: #ff0055;
+    border-color: #ffcc00;
+    box-shadow: 0 0 20px rgba(255, 0, 85, 0.6);
+    padding: 15px 40px;
+}
+
+.shoot-btn:active {
+    transform: scale(0.95); /* 押した時に少し凹むアニメーション */
+    background-color: #cc0044;
+}
+
+/* --- ★新規追加：スマホ閲覧時（画面幅が850px以下）のレイアウト変更 --- */
+@media (max-width: 850px) {
+    body {
+        align-items: flex-start; /* 画面の一番上から配置 */
+        padding-top: 20px;
+        padding-bottom: 50px;
+        overflow-y: auto; /* 縦スクロールを許可 */
+    }
+    
+    #app-wrapper {
+        flex-direction: column; /* パネルと台を縦並びにする */
+        gap: 20px;
+    }
+
+    #game-container {
+        /* スマホの画面に収まるように少し縮小（必要に応じて数値を調整してください） */
+        transform: scale(0.8); 
+        transform-origin: top center;
+        margin-bottom: -140px; /* 縮小して余った下のスペースを詰める */
+    }
+
+/* 縮小した台に合わせるためにスマホ版コントローラーの幅を調整 */
+    #mobile-controls {
+        display: flex; /* ★追加：スマホの時だけボタンを復活させて横に並べる！ */
+        transform: scale(0.9);
+    }
+}
+
+/* --- ★新規追加：保留変化システムのUIデザイン --- */
+#reserve-display {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    font-size: 20px;
+    font-weight: bold;
+    color: #fff;
+    text-shadow: 0 0 10px #00aaff;
+    margin-top: 15px;
+}
+#reserve-icons {
+    display: flex;
+    gap: 10px;
+}
+.reserve-icon {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 2px solid #555;
+    background-color: #222;
+    box-shadow: inset 0 0 5px #000;
+    transition: all 0.3s ease;
+}
+
+/* 先読み保留の色パターン（脳汁ポイント） */
+.res-white { background-color: #fff; border-color: #ddd; box-shadow: 0 0 10px #fff; }
+.res-blue  { background-color: #00aaff; border-color: #0077cc; box-shadow: 0 0 15px #00aaff; }
+.res-green { background-color: #00ff00; border-color: #00aa00; box-shadow: 0 0 20px #00ff00; }
+.res-red   { 
+    background-color: #ff0055; 
+    border-color: #ffcc00; 
+    box-shadow: 0 0 20px #ff0055, 0 0 40px #ff0055; 
+    animation: flashAnimation 0.1s infinite alternate; /* 赤保留は激しく明滅！ */
+}
+
+/* --- ★新規追加：リーチ（テンパイ）時の激アツ演出 --- */
+
+/* 盤面全体を赤くする */
+.reach-board-effect {
+    box-shadow: 0 0 50px rgba(255, 0, 0, 0.9), 0 0 100px rgba(255, 0, 0, 0.5) !important;
+    animation: reachFlash 0.3s ease infinite alternate !important;
+}
+
+/* 液晶モニターの枠を激しく赤く明滅させる */
+.reach-slot-effect {
+    border-color: #ff0000 !important;
+    box-shadow: 0 0 40px #ff0000, inset 0 0 40px #ff0000 !important;
+    animation: reachFlash 0.3s ease infinite alternate !important;
+}
+
+@keyframes reachFlash {
+    0% { filter: brightness(1); }
+    100% { filter: brightness(1.5); }
+}

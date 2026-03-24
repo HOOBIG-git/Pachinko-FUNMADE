@@ -20,8 +20,15 @@
                 <div class="slot" id="slot-2">0</div>
                 <div class="slot" id="slot-3">0</div>
             </div>
-            <div id="reserve-display">保留: <span id="reserve-count">0</span> / 4</div>
-            
+<div id="reserve-display">
+                保留: 
+                <div id="reserve-icons">
+                    <span class="reserve-icon"></span>
+                    <span class="reserve-icon"></span>
+                    <span class="reserve-icon"></span>
+                    <span class="reserve-icon"></span>
+                </div>
+            </div>            
             <div id="jackpot-message">!!! GREAT JOB !!!</div>
             
             <div id="jackpot-info" style="display: none;">
@@ -38,7 +45,13 @@
             <div id="jackpot-overlay" class="rainbow-effect"></div> 
             <div id="flash-overlay"></div>
             
-            </div>
+        </div>
+
+        <div id="mobile-controls">
+            <button id="btn-power-down" class="control-btn">◀ 弱</button>
+            <button id="btn-shoot" class="control-btn shoot-btn">🔴 打つ(長押し)</button>
+            <button id="btn-power-up" class="control-btn">強 ▶</button>
+        </div>
 
     </div>
 

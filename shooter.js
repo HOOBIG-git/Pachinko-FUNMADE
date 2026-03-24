@@ -11,6 +11,8 @@ export class Shooter {
         this.SHOOT_COOLDOWN = 600; 
     }
 
+// Shooter.js の fire() メソッド内を上書き
+
     fire(currentPower, ballCount) {
         if (ballCount <= 0) return { fired: false };
 
@@ -19,18 +21,19 @@ export class Shooter {
             render: { fillStyle: '#c0c0c0' }, label: 'ball'
         });
 
-        const forceX = 0; 
-
-        // ★全体的に強く調整しました！
-        // 以前：-0.06 〜 -0.12 の範囲
-        // 今回：-0.08 〜 -0.16 の範囲 (数値が大きいほど強くなります)
-        const baseForceY = -0.7 - (currentPower / 100) * 0.5;
-        
-        // ランダムなブレはそのまま
-        const forceY = baseForceY + (Math.random() * 0.004 - 0.002);
-
         this.Composite.add(this.world, ball);
-        this.Body.applyForce(ball, ball.position, { x: forceX, y: forceY });
+
+        // ★ここから変更：applyForce をやめて setVelocity を使う
+
+        // 速度（Velocity）はフレームレートに依存しないため、永遠に同じ強さを保ちます。
+        // ※Forceとは数値のケタが違うため、数値を -22 前後に変更しています。
+        const baseVelocityY = -22 - (currentPower / 100) * 8;
+        
+        // ランダムなブレ（少しだけ数値を大きくして自然な散らばりにしています）
+        const velocityY = baseVelocityY + (Math.random() * 0.6 - 0.3); 
+
+        // 力を加えるのではなく、玉に直接「速度」をセットする
+        this.Body.setVelocity(ball, { x: 0, y: velocityY });
 
         return { fired: true, ballsUsed: 1 };
     }

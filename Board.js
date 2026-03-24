@@ -48,7 +48,7 @@ export class Board {
         elements.push(this.Bodies.rectangle(260, 84, 90, 20, { ...railOpt, angle: Math.PI / 180 * 5 }));
         elements.push(this.Bodies.rectangle(335, 150, 138, 20, { ...railOpt, angle: Math.PI / 180 * 60 }));
 
-        elements.push(this.Bodies.rectangle(460, 350, 10, 500, railOpt));
+        elements.push(this.Bodies.rectangle(460, 355, 20, 500, railOpt));
         elements.push(this.Bodies.rectangle(370, 370, 10, 330, railOpt)); 
 
         elements.push(this.Bodies.rectangle(110, 220, 10, 100, { ...railOpt, angle: Math.PI / 180 * -5 }));

@@ -35,6 +35,7 @@ export class Sound {
         // 1000Hzから3000Hzへ、0.15秒で一気に駆け上がる
         this.playSweep('sine', 1000, 3000, now, 0.15, 0.15);
     }
+    
 
     // ④ ★大改修：ヴヴヴ＆ユニコーン風 脳汁確定サウンド
     playMegaJackpot() {
@@ -59,6 +60,23 @@ export class Sound {
         this.playTone('sawtooth', 1108.73, chordTime, 3.0, 0.1); // C#6
         this.playTone('sawtooth', 1318.51, chordTime, 3.0, 0.1); // E6
         this.playTone('square', 1760.00, chordTime, 3.0, 0.05);  // A6 (きらびやかさ)
+    }
+
+    // ⑤ ★新規追加：リーチ（テンパイ）時のヒリつく警告音と心音
+    playReach() {
+        const now = this.ctx.currentTime;
+        
+        // 1. テンパイ直後の「キィィィン！」という甲高い警告音
+        this.playSweep('triangle', 1500, 3000, now, 0.6, 0.1);
+        this.playSweep('triangle', 1500, 3000, now + 0.7, 0.6, 0.1);
+        
+        // 2. 祈りの時間「ドックン...ドックン...」という重低音の心音（8回鳴らす）
+        for(let i = 0; i < 8; i++) {
+            // ドッ（60Hzの超低音）
+            this.playTone('sine', 60, now + 1.5 + (i * 0.4), 0.1, 0.4);
+            // クン（少しだけ高い音）
+            this.playTone('sine', 65, now + 1.65 + (i * 0.4), 0.1, 0.3);
+        }
     }
 
     // 音を鳴らすための補助関数（音量volを追加）
