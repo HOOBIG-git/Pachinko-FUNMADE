@@ -70,14 +70,14 @@ export class Sound {
         this.playSweep('triangle', 1500, 3000, now, 0.6, 0.1);
         this.playSweep('triangle', 1500, 3000, now + 0.7, 0.6, 0.1);
         
-        // 2. 祈りの時間「ドックン...ドックン...」という重低音の心音（8回鳴らす）
-        for(let i = 0; i < 8; i++) {
-            // ドッ（60Hzの超低音）
-            this.playTone('sine', 60, now + 1.5 + (i * 0.4), 0.1, 0.4);
-            // クン（少しだけ高い音）
-            this.playTone('sine', 65, now + 1.65 + (i * 0.4), 0.1, 0.3);
-        }
-    }
+    // 2. 祈りの時間「ドックン...ドックン...」という重低音の心音
+    // ★変更：8回から 18回 に増やして、心音を長く続ける！
+    for(let i = 0; i < 18; i++) {
+        // ドッ（60Hzの超低音）
+        this.playTone('sine', 60, now + 1.5 + (i * 0.4), 0.1, 0.4);
+        // クン（少しだけ高い音）
+        this.playTone('sine', 65, now + 1.65 + (i * 0.4), 0.1, 0.3);
+    }    }
 
     // 音を鳴らすための補助関数（音量volを追加）
     playTone(type, freq, delay, duration, vol) {

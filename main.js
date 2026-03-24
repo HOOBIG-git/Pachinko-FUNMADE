@@ -159,7 +159,7 @@ function checkAndSpin() {
                 document.getElementById('digital-screen').classList.remove('reach-slot-effect');
 
                 finishSpin(isWin);
-            }, 4500); 
+            }, 8000); 
         } else {
             // ハズレ（テンパイしなかった時）
             setTimeout(() => {
@@ -171,15 +171,19 @@ function checkAndSpin() {
     }, 2000);
 }
 
+// main.js の finishSpin 関数を上書き
+
 function finishSpin(isWin) {
     if (isWin) {
         triggerJackpot();
     } else {
-        isSpinning = false;
-        checkAndSpin(); 
+        // ★大正解の修正：ハズレ確定後、1秒間（1000ミリ秒）数字を見せてから次へ進む
+        setTimeout(() => {
+            isSpinning = false;
+            checkAndSpin(); 
+        }, 1000); // ここを 1500 などにすればさらに長く待てます
     }
 }
-
 function triggerJackpot() {
     isJackpot = true;
     document.body.classList.add('mega-shake');
