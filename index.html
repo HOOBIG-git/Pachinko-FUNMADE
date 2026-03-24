@@ -20,7 +20,8 @@
                 <div class="slot" id="slot-2">0</div>
                 <div class="slot" id="slot-3">0</div>
             </div>
-<div id="reserve-display">
+
+            <div id="reserve-display">
                 保留: 
                 <div id="reserve-icons">
                     <span class="reserve-icon"></span>
@@ -29,11 +30,18 @@
                     <span class="reserve-icon"></span>
                 </div>
             </div>            
+
             <div id="jackpot-message">!!! GREAT JOB !!!</div>
             
             <div id="jackpot-info" style="display: none;">
                 <p>ROUND: <span id="round-display">1</span> / 15</p>
                 <p>COUNT: <span id="count-display">0</span> / 10</p>
+            </div>
+
+            <!-- ★ モード表示エリア -->
+            <div id="mode-display" style="display: none;">
+                <p id="mode-name">IMPACT MODE</p>
+                <p>残り <span id="mode-spins-left">0</span> 回転</p>
             </div>
         </div>
 
@@ -41,10 +49,8 @@
             <div id="power-bar-container">
                 <div id="power-bar-fill"></div>
             </div>
-            
-            <div id="jackpot-overlay" class="rainbow-effect"></div> 
+            <div id="jackpot-overlay"></div> 
             <div id="flash-overlay"></div>
-            
         </div>
 
         <div id="mobile-controls">

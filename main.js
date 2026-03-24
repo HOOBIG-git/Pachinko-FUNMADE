@@ -38,39 +38,105 @@ let startCount = 0;
 let isJackpot = false;
 let isSpinning = false; 
 
-// 保留データ（当たりかハズレか、何色か）を管理する配列
+// ★ ゲームモード管理 ('normal' | 'tanjun' | 'st')
+let gameMode = 'normal';
+let modeSpinsLeft = 0;
+
+// ★ 大当たり確率
+const JACKPOT_PROB_NORMAL = 1 / 319;
+const JACKPOT_PROB_ST     = 1 / 99;
+
+// 保留データを管理する配列
 let reserves = []; 
 const MAX_RESERVE = 4;  
-const jackpotProbability = 0.1; 
 let currentPower = 50;
 
-// ラウンド管理用の変数
+// ラウンド管理
 let currentRound = 0;
 let currentCount = 0;
 const MAX_ROUND = 15; 
 const MAX_COUNT = 10; 
 let roundTimer;       
 
-const jackpotOverlayEl = document.getElementById('jackpot-overlay');
-const flashOverlayEl = document.getElementById('flash-overlay');
-const roundDisplayEl = document.getElementById('round-display');
-const countDisplayEl = document.getElementById('count-display');
-const jackpotInfoEl = document.getElementById('jackpot-info');
-const ballCountEl = document.getElementById('ball-count');
-const startCountEl = document.getElementById('start-count');
-const reserveIcons = document.querySelectorAll('.reserve-icon'); 
-const powerBarFill = document.getElementById('power-bar-fill');
+// --- DOM参照 ---
+const jackpotOverlayEl  = document.getElementById('jackpot-overlay');
+const flashOverlayEl    = document.getElementById('flash-overlay');
+const roundDisplayEl    = document.getElementById('round-display');
+const countDisplayEl    = document.getElementById('count-display');
+const jackpotInfoEl     = document.getElementById('jackpot-info');
+const ballCountEl       = document.getElementById('ball-count');
+const startCountEl      = document.getElementById('start-count');
+const reserveIcons      = document.querySelectorAll('.reserve-icon'); 
+const powerBarFill      = document.getElementById('power-bar-fill');
+const jackpotMsgEl      = document.getElementById('jackpot-message');
+const canvasEl          = document.querySelector('canvas');
+// ★ 追加DOM
+const modeDisplayEl     = document.getElementById('mode-display');
+const modeNameEl        = document.getElementById('mode-name');
+const modeSpinsLeftEl   = document.getElementById('mode-spins-left');
+
 const slotEls = [
     document.getElementById('slot-1'),
     document.getElementById('slot-2'),
     document.getElementById('slot-3')
 ];
-const jackpotMsgEl = document.getElementById('jackpot-message');
 
-// 保留配列の中身に合わせてランプの色を更新する関数
+// ★ 大当たり確率をモードに応じて返す
+function getJackpotProbability() {
+    return gameMode === 'st' ? JACKPOT_PROB_ST : JACKPOT_PROB_NORMAL;
+}
+
+// ★ モードに応じて盤面・パネルの見た目を切り替える
+function applyModeVisuals() {
+    document.body.classList.remove('mode-st', 'mode-tanjun');
+    if (jackpotOverlayEl) {
+        jackpotOverlayEl.classList.remove('rainbow-effect', 'st-effect', 'tanjun-effect');
+        jackpotOverlayEl.style.display = 'none';
+    }
+
+    if (gameMode === 'st') {
+        document.body.classList.add('mode-st');
+        if (jackpotOverlayEl) {
+            jackpotOverlayEl.classList.add('st-effect');
+            jackpotOverlayEl.style.display = 'block';
+        }
+        if (modeNameEl)     modeNameEl.innerText = '🔥 IMPACT MODE';
+        if (modeDisplayEl)  modeDisplayEl.style.display = 'block';
+    } else if (gameMode === 'tanjun') {
+        document.body.classList.add('mode-tanjun');
+        if (jackpotOverlayEl) {
+            jackpotOverlayEl.classList.add('tanjun-effect');
+            jackpotOverlayEl.style.display = 'block';
+        }
+        if (modeNameEl)     modeNameEl.innerText = '⚡ TIME SAVING';
+        if (modeDisplayEl)  modeDisplayEl.style.display = 'block';
+    } else {
+        if (modeDisplayEl)  modeDisplayEl.style.display = 'none';
+    }
+}
+
+// ★ 残り回転数を1減らし、0になったらモード終了
+function countDownSpin() {
+    if (gameMode === 'normal') return;
+    modeSpinsLeft--;
+    if (modeSpinsLeftEl) modeSpinsLeftEl.innerText = modeSpinsLeft;
+    if (modeSpinsLeft <= 0) endMode();
+}
+
+// ★ モード終了処理
+function endMode() {
+    gameMode = 'normal';
+    modeSpinsLeft = 0;
+    // 電チューのフタを閉じる
+    board.denchuLid.isSensor = false;
+    board.denchuLid.render.visible = true;
+    applyModeVisuals();
+}
+
+// 保留UIの更新
 function updateReserveUI() {
     reserveIcons.forEach((icon, index) => {
-        icon.className = 'reserve-icon'; // 一旦リセット
+        icon.className = 'reserve-icon';
         if (index < reserves.length) {
             icon.classList.add(`res-${reserves[index].color}`);
         }
@@ -101,15 +167,37 @@ function handleFire() {
     }
 }
 
-// 先読み抽選結果を使ってスロットを回す
+// ★ 保留を積む共通処理（ヘソ・電チュー両方から呼ぶ）
+function addReserve() {
+    if (reserves.length >= MAX_RESERVE || isJackpot) return;
+
+    const isWin = Math.random() < getJackpotProbability();
+    let color = 'white'; 
+    
+    if (isWin) {
+        color = Math.random() < 0.7 ? 'red' : 'green';
+    } else {
+        const r = Math.random();
+        if (r < 0.05)       color = 'green';
+        else if (r < 0.20)  color = 'blue';
+    }
+    
+    reserves.push({ isWin, color });
+    updateReserveUI(); 
+    checkAndSpin(); 
+}
+
 function checkAndSpin() {
     if (isSpinning || isJackpot || reserves.length === 0) return;
 
-    // 保留配列の先頭を取り出してUIを更新
     const currentData = reserves.shift(); 
     updateReserveUI(); 
     
     isSpinning = true;
+
+    // ★ 変動のたびに残り回転数を減らす
+    countDownSpin();
+
     const isWin = currentData.isWin; 
 
     let leftNum, rightNum, centerNum;
@@ -137,15 +225,10 @@ function checkAndSpin() {
     setTimeout(() => {
         slotEls[2].innerText = rightNum;
         if (leftNum === rightNum) {
-            // ★★★ リーチ（テンパイ）の瞬間！演出発動！ ★★★
             slotEls[1].style.color = '#ff0055'; 
-            
-            // リーチ音（キーン！＋心音）を鳴らす
-            if(typeof sound !== 'undefined' && typeof sound.playReach === 'function') {
-                sound.playReach();
-            }
-            
-            // 盤面と液晶を真っ赤に染める（CSSクラスを追加）
+
+            sound.playReach();
+
             document.getElementById('game-container').classList.add('reach-board-effect');
             document.getElementById('digital-screen').classList.add('reach-slot-effect');
 
@@ -153,15 +236,11 @@ function checkAndSpin() {
                 clearInterval(shuffleInterval);
                 slotEls[1].innerText = centerNum;
                 slotEls[1].style.color = '#fff'; 
-                
-                // ★ 真ん中が止まったら、真っ赤な演出を解除する（元に戻す）
                 document.getElementById('game-container').classList.remove('reach-board-effect');
                 document.getElementById('digital-screen').classList.remove('reach-slot-effect');
-
                 finishSpin(isWin);
             }, 8000); 
         } else {
-            // ハズレ（テンパイしなかった時）
             setTimeout(() => {
                 clearInterval(shuffleInterval);
                 slotEls[1].innerText = centerNum;
@@ -171,21 +250,26 @@ function checkAndSpin() {
     }, 2000);
 }
 
-// main.js の finishSpin 関数を上書き
-
 function finishSpin(isWin) {
     if (isWin) {
         triggerJackpot();
     } else {
-        // ★大正解の修正：ハズレ確定後、1秒間（1000ミリ秒）数字を見せてから次へ進む
         setTimeout(() => {
             isSpinning = false;
             checkAndSpin(); 
-        }, 1000); // ここを 1500 などにすればさらに長く待てます
+        }, 1000);
     }
 }
+
 function triggerJackpot() {
     isJackpot = true;
+
+    // ★ 大当たり中はモードオーバーレイを一旦消す
+    if (jackpotOverlayEl) {
+        jackpotOverlayEl.classList.remove('st-effect', 'tanjun-effect');
+        jackpotOverlayEl.style.display = 'none';
+    }
+
     document.body.classList.add('mega-shake');
     if (flashOverlayEl) flashOverlayEl.classList.add('flash-effect');
     if (flashOverlayEl) flashOverlayEl.style.display = 'block';
@@ -193,17 +277,15 @@ function triggerJackpot() {
     jackpotMsgEl.style.display = 'block';
     jackpotInfoEl.style.display = 'none'; 
     
-    if(typeof sound !== 'undefined') sound.playMegaJackpot();
+    sound.playMegaJackpot();
     currentRound = 1;
 
     setTimeout(() => {
         jackpotMsgEl.style.display = 'none';
         jackpotInfoEl.style.display = 'block'; 
-        
         document.body.classList.remove('mega-shake');
         if (flashOverlayEl) flashOverlayEl.classList.remove('flash-effect');
         if (flashOverlayEl) flashOverlayEl.style.display = 'none';
-
         startRound(); 
     }, 3000); 
 }
@@ -213,7 +295,11 @@ function startRound() {
     roundDisplayEl.innerText = currentRound;
     countDisplayEl.innerText = currentCount;
 
-    if (jackpotOverlayEl) jackpotOverlayEl.style.display = 'block';
+    if (jackpotOverlayEl) {
+        jackpotOverlayEl.classList.remove('st-effect', 'tanjun-effect');
+        jackpotOverlayEl.classList.add('rainbow-effect');
+        jackpotOverlayEl.style.display = 'block';
+    }
 
     board.attackerLid.isSensor = true;
     board.attackerLid.render.visible = false;
@@ -224,7 +310,10 @@ function startRound() {
 function endRound() {
     clearTimeout(roundTimer); 
 
-    if (jackpotOverlayEl) jackpotOverlayEl.style.display = 'none';
+    if (jackpotOverlayEl) {
+        jackpotOverlayEl.classList.remove('rainbow-effect');
+        jackpotOverlayEl.style.display = 'none';
+    }
 
     board.attackerLid.isSensor = false;
     board.attackerLid.render.visible = true;
@@ -232,23 +321,38 @@ function endRound() {
     if (currentRound < MAX_ROUND) {
         currentRound++;
         setTimeout(startRound, 2000); 
-    } 
-    else {
+    } else {
+        // ★ 全ラウンド終了 → 59%で確変(ST)、41%で時短に分岐
         setTimeout(() => {
             isJackpot = false;
             isSpinning = false;
             jackpotMsgEl.style.display = 'none';
             jackpotInfoEl.style.display = 'none';
             slotEls.forEach(el => el.innerText = '0');
+
+            if (Math.random() < 0.59) {
+                gameMode = 'st';
+                modeSpinsLeft = 163;
+            } else {
+                gameMode = 'tanjun';
+                modeSpinsLeft = 100;
+            }
+
+            // ★ ST/時短中は電チューを常時開放
+            board.denchuLid.isSensor = true;
+            board.denchuLid.render.visible = false;
+
+            if (modeSpinsLeftEl) modeSpinsLeftEl.innerText = modeSpinsLeft;
+            applyModeVisuals();
             checkAndSpin(); 
         }, 3000); 
     }
 }
 
-// 操作関連（スマホタッチ対応版）
+// --- 操作イベント ---
 window.addEventListener('mousedown', (e) => { 
     if(e.button === 0) isShooting = true;
-    if(typeof sound !== 'undefined') sound.init();
+    sound.init();
 });
 window.addEventListener('mouseup', (e) => { if(e.button === 0) isShooting = false; });
 window.addEventListener('mouseleave', () => { isShooting = false; });
@@ -264,36 +368,28 @@ window.addEventListener('keyup', (event) => {
     if (event.key === 'Enter') isShooting = false;
 });
 
-const btnShoot = document.getElementById('btn-shoot');
-const btnPowerUp = document.getElementById('btn-power-up');
+const btnShoot     = document.getElementById('btn-shoot');
+const btnPowerUp   = document.getElementById('btn-power-up');
 const btnPowerDown = document.getElementById('btn-power-down');
 
 if (btnShoot) {
-    btnShoot.addEventListener('touchstart', (e) => {
-        e.preventDefault(); 
-        isShooting = true;
-        if(typeof sound !== 'undefined') sound.init();
-    });
-    btnShoot.addEventListener('touchend', (e) => {
-        e.preventDefault();
-        isShooting = false;
-    });
+    btnShoot.addEventListener('touchstart', (e) => { e.preventDefault(); isShooting = true; sound.init(); });
+    btnShoot.addEventListener('touchend',   (e) => { e.preventDefault(); isShooting = false; });
 }
 if (btnPowerUp) {
     btnPowerUp.addEventListener('touchstart', (e) => { e.preventDefault(); updatePower(5); });
-    btnPowerUp.addEventListener('mousedown', () => { updatePower(5); }); 
+    btnPowerUp.addEventListener('mousedown',  () => { updatePower(5); }); 
 }
 if (btnPowerDown) {
     btnPowerDown.addEventListener('touchstart', (e) => { e.preventDefault(); updatePower(-5); });
-    btnPowerDown.addEventListener('mousedown', () => { updatePower(-5); }); 
+    btnPowerDown.addEventListener('mousedown',  () => { updatePower(-5); }); 
 }
 
-// 毎フレームの更新イベント
 Events.on(engine, 'beforeUpdate', () => {
     if (isShooting) handleFire();
 });
 
-// 衝突判定イベント
+// --- 衝突判定 ---
 Events.on(engine, 'collisionStart', function(event) {
     event.pairs.forEach((pair) => {
         const bodyA = pair.bodyA;
@@ -301,40 +397,24 @@ Events.on(engine, 'collisionStart', function(event) {
 
         if ((bodyA.label === 'ball' && bodyB.label === 'peg') ||
             (bodyB.label === 'ball' && bodyA.label === 'peg')) {
-            if(typeof sound !== 'undefined') sound.playPegHit();
+            sound.playPegHit();
         }
 
-        // --- チャッカー（ヘソ）入賞 ---
+        // ヘソ入賞
         if ((bodyA.label === 'ball' && bodyB.label === 'chucker') ||
             (bodyB.label === 'ball' && bodyA.label === 'chucker')) {
-            if(typeof sound !== 'undefined') sound.playChuckerIn();
+            sound.playChuckerIn();
             startCount++;
             if (startCountEl) startCountEl.innerText = startCount;
             ballCount += 3; 
             if (ballCountEl) ballCountEl.innerText = ballCount;
-            
-            // 先読み抽選と保留変化システム
-            if (reserves.length < MAX_RESERVE) {
-                const isWin = Math.random() < jackpotProbability;
-                let color = 'white'; 
-                
-                if (isWin) {
-                    color = Math.random() < 0.7 ? 'red' : 'green';
-                } else {
-                    const r = Math.random();
-                    if (r < 0.05) color = 'green';
-                    else if (r < 0.20) color = 'blue';
-                }
-                
-                reserves.push({ isWin: isWin, color: color });
-                updateReserveUI(); 
-                checkAndSpin(); 
-            }
-            
+            addReserve();
+
             const ballToRemove = bodyA.label === 'ball' ? bodyA : bodyB;
             if (ballToRemove) Composite.remove(engine.world, ballToRemove);
         }
 
+        // アウト処理
         if (bodyA.label === 'out' || bodyB.label === 'out') {
             const ballToRemove = bodyA.label === 'ball' ? bodyA : bodyB;
             if (ballToRemove) {
@@ -346,66 +426,69 @@ Events.on(engine, 'collisionStart', function(event) {
             }
         }
 
+        // スルーチャッカー
         if ((bodyA.label === 'ball' && bodyB.label === 'through') ||
             (bodyB.label === 'ball' && bodyA.label === 'through')) {
-            
-            board.denchuLid.isSensor = true;
-            board.denchuLid.render.visible = false;
-            if(typeof sound !== 'undefined') sound.playChuckerIn();
-
-            setTimeout(() => {
-                board.denchuLid.isSensor = false;
-                board.denchuLid.render.visible = true;
-            }, 1500);
+            // ★ ST/時短中は電チューが常時開放なので処理不要
+            if (gameMode === 'normal') {
+                board.denchuLid.isSensor = true;
+                board.denchuLid.render.visible = false;
+                sound.playChuckerIn();
+                setTimeout(() => {
+                    board.denchuLid.isSensor = false;
+                    board.denchuLid.render.visible = true;
+                }, 1500);
+            }
         }
         
+        // 電チュー入賞
         if ((bodyA.label === 'ball' && bodyB.label === 'denchu') ||
             (bodyB.label === 'ball' && bodyA.label === 'denchu')) {
             
-            if (flashOverlayEl) flashOverlayEl.style.display = 'block';
-            setTimeout(() => {
-                if (flashOverlayEl) flashOverlayEl.style.display = 'none';
-            }, 100);
+            if (flashOverlayEl) {
+                flashOverlayEl.style.display = 'block';
+                setTimeout(() => { flashOverlayEl.style.display = 'none'; }, 100);
+            }
 
             if (isJackpot) return;
 
             ballCount += 1;
             if (ballCountEl) ballCountEl.innerText = ballCount;
-            if(typeof sound !== 'undefined') sound.playChuckerIn();
+            sound.playChuckerIn();
 
-            if (!isJackpot && Math.random() < 0.81) {
-                triggerJackpot(); 
-            }
+            // ★ ヘソと同じく保留を積んでスロットを回す
+            addReserve();
 
             const ballToRemove = bodyA.label === 'ball' ? bodyA : bodyB;
             if (ballToRemove) Composite.remove(engine.world, ballToRemove);
         }    
 
+        // アタッカー入賞
         if ((bodyA.label === 'ball' && bodyB.label === 'attacker') ||
             (bodyB.label === 'ball' && bodyA.label === 'attacker')) {
             
-            if (flashOverlayEl) flashOverlayEl.style.display = 'block';
-            setTimeout(() => {
-                if (flashOverlayEl) flashOverlayEl.style.display = 'none';
-            }, 100);
+            if (flashOverlayEl) {
+                flashOverlayEl.style.display = 'block';
+                setTimeout(() => { flashOverlayEl.style.display = 'none'; }, 100);
+            }
 
             ballCount += 15; 
             if (ballCountEl) ballCountEl.innerText = ballCount;
-            if(typeof sound !== 'undefined') sound.playAttackerHit();
+            sound.playAttackerHit();
             
             if (isJackpot) {
                 currentCount++;
                 if (countDisplayEl) countDisplayEl.innerText = currentCount;
-
                 if (currentCount >= MAX_COUNT) {
+                    clearTimeout(roundTimer); // ★ タイマー二重実行を防ぐ
                     endRound();
                 }
             }
 
-            if (ballCountEl) ballCountEl.style.textShadow = '0 0 15px #ffcc00, 0 0 30px #ffcc00';
-            setTimeout(() => {
-                if (ballCountEl) ballCountEl.style.textShadow = ''; 
-            }, 100);
+            if (ballCountEl) {
+                ballCountEl.style.textShadow = '0 0 15px #ffcc00, 0 0 30px #ffcc00';
+                setTimeout(() => { ballCountEl.style.textShadow = ''; }, 100);
+            }
 
             const ballToRemove = bodyA.label === 'ball' ? bodyA : bodyB;
             if (ballToRemove) Composite.remove(engine.world, ballToRemove);
