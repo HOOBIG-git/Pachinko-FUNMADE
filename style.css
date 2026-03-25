@@ -1,16 +1,17 @@
+/* =========================================
+   全体・ベースレイアウト
+========================================= */
 body {
     display: flex;
     justify-content: center;
     align-items: center;
     height: 100vh;
     margin: 0;
-    /* サイバーパンクな背景 */
     background-color: #0f2027;
     background-image: radial-gradient(#203a43, #2c5364);
     color: white;
     font-family: sans-serif;
     overflow: hidden;
-    /* ★追加：全体を激しく揺らすためのアニメーション（CSSクラスで起動） */
     animation-timing-function: ease-in-out;
 }
 
@@ -22,7 +23,7 @@ body {
     max-width: 100vw;
 }
 
-/* ★追加：激しく揺らすアニメーション（脳汁SHAKE） */
+/* 激しく揺らすアニメーション（脳汁SHAKE） */
 .mega-shake {
     animation: megaShake 0.15s infinite;
 }
@@ -40,12 +41,13 @@ body {
     100% { transform: translate(1px, -2px) rotate(-1deg); }
 }
 
-/* パチンコ台本体 */
+/* =========================================
+   ゲーム盤面（キャンバス）
+========================================= */
 #game-container { 
     position: relative; 
     width: 500px;
     height: 700px;
-    /* 盤面の周りに初号機の紫色のオーラ（ネオンGLOW）を強化 */
     box-shadow: 0 0 50px rgba(170, 0, 255, 0.7), 0 0 100px rgba(170, 0, 255, 0.3);
 }
 
@@ -54,7 +56,6 @@ canvas {
     border-radius: 15px;
     display: block;
     background-color: transparent;
-    /* テスト用背景（そのまま） */
     background-image: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.8)), 
                       url('https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=500&h=700&fit=crop');
     background-size: cover;
@@ -63,55 +64,7 @@ canvas {
     height: 700px;
 }
 
-/* ★新規追加：演出用オーバーレイのスタイル */
-#jackpot-overlay, #flash-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    border-radius: 15px;
-    pointer-events: none; /* 玉の衝突を邪魔しない */
-    display: none; /* 普段は隠す */
-    z-index: 100; /* 全ての手前に */
-}
-
-/* 大当たり中：虹色オーバーレイ（RAINBOW） */
-.rainbow-effect {
-    background: linear-gradient(
-        124deg,
-        rgba(255, 36, 36, 0.3),
-        rgba(255, 235, 36, 0.3),
-        rgba(36, 255, 78, 0.3),
-        rgba(36, 255, 255, 0.3),
-        rgba(36, 36, 255, 0.3),
-        rgba(255, 36, 255, 0.3),
-        rgba(255, 36, 36, 0.3)
-    );
-    background-size: 1800% 1800%;
-    animation: rainbowAnimation 3s ease infinite;
-}
-@keyframes rainbowAnimation {
-    0% { background-position: 0% 82%; }
-    50% { background-position: 100% 19%; }
-    100% { background-position: 0% 82%; }
-}
-
-/* 大当たり開始時：電撃・点滅オーバーレイ（FLASH） */
-.flash-effect {
-    background: linear-gradient(
-        45deg,
-        rgba(0, 255, 255, 0.5),
-        rgba(255, 0, 255, 0.5)
-    );
-    animation: flashAnimation 0.1s ease infinite alternate;
-}
-@keyframes flashAnimation {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-
-/* パワーゲージ（そのまま） */
+/* パワーゲージ */
 #power-bar-container {
     position: absolute; right: 20px; bottom: 50px;
     width: 20px; height: 300px; background-color: #333;
@@ -122,19 +75,52 @@ canvas {
     background: linear-gradient(to top, #00ff00, #ffcc00, #ff0000);
 }
 
-/* データパネル（初号機カラー、ネオン発光GLOW） */
+/* =========================================
+   演出用オーバーレイ（光・フラッシュ）
+========================================= */
+#jackpot-overlay, #flash-overlay {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    border-radius: 15px;
+    pointer-events: none;
+    display: none;
+    z-index: 100;
+}
+
+.rainbow-effect {
+    background: linear-gradient(124deg, rgba(255,36,36,0.3), rgba(255,235,36,0.3), rgba(36,255,78,0.3), rgba(36,255,255,0.3), rgba(36,36,255,0.3), rgba(255,36,255,0.3), rgba(255,36,36,0.3));
+    background-size: 1800% 1800%;
+    animation: rainbowAnimation 3s ease infinite;
+}
+@keyframes rainbowAnimation {
+    0% { background-position: 0% 82%; }
+    50% { background-position: 100% 19%; }
+    100% { background-position: 0% 82%; }
+}
+
+.flash-effect {
+    background: linear-gradient(45deg, rgba(0, 255, 255, 0.5), rgba(255, 0, 255, 0.5));
+    animation: flashAnimation 0.1s ease infinite alternate;
+}
+@keyframes flashAnimation {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* =========================================
+   データパネル（左側の情報エリア）
+========================================= */
 #side-panel {
     display: flex; flex-direction: column; align-items: center;
     background-color: #2a1b38; padding: 30px; border-radius: 15px;
     border: 4px solid #76ff03;
-    /* 強力なネオン発光（GLOW）を追加 */
     box-shadow: 0 0 30px rgba(118, 255, 3, 0.6), 0 0 100px rgba(118, 255, 3, 0.2);
     width: 320px; height: 520px; position: relative;
 }
 
 #side-panel h2 {
     margin-top: 0; color: #b388ff;
-    text-shadow: 0 0 15px #b388ff, 0 0 30px #b388ff; /* タイトルの発光も強化 */
+    text-shadow: 0 0 15px #b388ff, 0 0 30px #b388ff;
     font-size: 22px; letter-spacing: 2px;
 }
 
@@ -147,409 +133,61 @@ canvas {
 #ui p { margin: 5px 0; font-size: 20px; font-weight: bold; }
 .highlight { 
     color: #ffcc00; font-size: 26px; 
-    text-shadow: 0 0 10px #ffcc00, 0 0 20px #ffcc00; /* 数字もネオン発光 */
+    text-shadow: 0 0 10px #ffcc00, 0 0 20px #ffcc00; 
 }
 
-/* 大当たりメッセージ（ギラギラ） */
-#jackpot-message {
-    position: absolute;
-    bottom: 20px;
-    width: 100%;
-    text-align: center;
-    font-size: 50px; /* 文字を大きく */
-    font-weight: bold;
-    color: #fff;
-    /* 激しいネオン発光（赤・虹）を追加 */
-    text-shadow: 0 0 20px #ff0055, 0 0 40px #ff0055, 0 0 60px #ffcc00;
-    display: none;
-    z-index: 110;
-}
-
-/* ラウンド表示（ギラギラ） */
-#jackpot-info {
-    margin-top: 20px;
-    background: rgba(255, 0, 85, 0.3);
-    border: 3px solid #ff0055;
-    padding: 10px 30px;
-    border-radius: 10px;
-    text-align: center;
-    box-shadow: 0 0 30px rgba(255, 0, 85, 0.7); /* 発光強化 */
-}
-#jackpot-info p {
-    margin: 5px 0; font-size: 24px; font-weight: bold; color: #fff;
-    font-family: 'Courier New', Courier, monospace;
-}
-#round-display, #count-display {
-    color: #fff;
-    /* 数字もネオン発光強化 */
-    text-shadow: 0 0 15px #ffcc00, 0 0 30px #ffcc00; 
-    font-size: 32px;
-}
-
-/* --- 復活＆強化：液晶モニター（スロット） --- */
+/* 液晶モニター（スロット） */
 #digital-screen {
-    width: 90%;
-    height: 120px;
-    background-color: #000;
-    /* 液晶の枠をエヴァっぽい赤に */
-    border: 4px solid #ff0055; 
-    border-radius: 10px;
-    /* 横並びに均等配置する魔法のコード */
-    display: flex;
-    justify-content: space-around;
-    align-items: center;
-    font-family: 'Courier New', Courier, monospace;
-    font-size: 70px; /* 数字を巨大化 */
-    color: #fff;
-    /* 数字自体も赤とピンクでネオン発光させる */
+    width: 90%; height: 120px; background-color: #000;
+    border: 4px solid #ff0055; border-radius: 10px;
+    display: flex; justify-content: space-around; align-items: center;
+    font-family: 'Courier New', Courier, monospace; font-size: 70px; color: #fff;
     text-shadow: 0 0 15px #ff0055, 0 0 30px #ff0055; 
-    margin-top: 10px;
-    margin-bottom: 20px;
-    /* 画面の内側にも光の反射をつける */
+    margin-top: 10px; margin-bottom: 20px;
     box-shadow: inset 0 0 20px rgba(255, 0, 85, 0.3);
 }
 
-#reserve-display {
-    font-size: 24px;
-    font-weight: bold;
-    color: #fff;
-    text-shadow: 0 0 10px #00aaff;
-}
-
-/* --- スマホ用コントローラーのデザイン --- */
-#mobile-controls {
-    display: none; /* ★変更：基本（PC）は非表示にする！ */
-    justify-content: center;
-    gap: 15px;
-    width: 100%;
-    margin-top: 10px;
-    z-index: 200;
-}
-.control-btn {
-    padding: 15px 20px;
-    font-size: 20px;
-    font-weight: bold;
-    border-radius: 10px;
-    border: 2px solid #76ff03;
-    background-color: #2a1b38;
-    color: #fff;
-    box-shadow: 0 0 10px rgba(118, 255, 3, 0.4);
-    /* スマホでダブルタップズームされるのを防ぐ */
-    touch-action: manipulation; 
-    user-select: none;
-    cursor: pointer;
-}
-
-.shoot-btn {
-    background-color: #ff0055;
-    border-color: #ffcc00;
-    box-shadow: 0 0 20px rgba(255, 0, 85, 0.6);
-    padding: 15px 40px;
-}
-
-.shoot-btn:active {
-    transform: scale(0.95); /* 押した時に少し凹むアニメーション */
-    background-color: #cc0044;
-}
-
-@media (max-width: 850px) {
-
-    body {
-        align-items: flex-start;
-        padding: 10px 0 20px 0;
-        overflow-y: auto;
-        overflow-x: hidden;
-    }
-
-    #app-wrapper {
-        flex-direction: column;
-        align-items: center;
-        gap: 10px;
-        width: 100%;
-    }
-
-    /* サイドパネルを上に */
-    #side-panel {
-        order: 1;
-        width: 90vw;
-        height: auto;
-        padding: 15px;
-        box-sizing: border-box;
-    }
-
-    #ui {
-        width: 100%;
-        margin-bottom: 10px;
-        padding: 8px 15px;
-    }
-    #ui p { font-size: 16px; }
-    .highlight { font-size: 20px; }
-
-    #side-panel h2 {
-        font-size: 16px;
-        margin: 5px 0;
-    }
-
-    #digital-screen {
-        width: 100%;
-        height: 80px;
-        font-size: 50px;
-        margin: 5px 0 10px 0;
-    }
-
-    #reserve-display {
-        margin-top: 8px;
-        font-size: 16px;
-    }
-
-    #jackpot-info {
-        padding: 5px 15px;
-        margin-top: 8px;
-    }
-    #jackpot-info p { font-size: 18px; }
-    #round-display, #count-display { font-size: 24px; }
-
-    #mode-display {
-        margin-top: 8px;
-        padding: 6px 12px;
-    }
-    #mode-name { font-size: 16px; }
-    #mode-display p { font-size: 14px; }
-
-    /* 盤面を下に・画面幅に収まるよう縮小 */
-    #game-container {
-        order: 2;
-        transform: scale(calc(90vw / 500px));
-        transform-origin: top left;
-        margin-left: 5vw;
-        /* 縮小した分の余白を打ち消す */
-        margin-bottom: calc((90vw - 500px) * 700 / 500);
-    }
-
-    /* ボタンは非表示（タッチ操作に切り替えるため） */
-    #mobile-controls {
-        display: none;
-    }
-}/* --- ★新規追加：保留変化システムのUIデザイン --- */
+/* =========================================
+   保留システム（UI・色）
+========================================= */
 #reserve-display {
     display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 15px;
-    font-size: 20px;
-    font-weight: bold;
-    color: #fff;
-    text-shadow: 0 0 10px #00aaff;
+    flex-direction: column;
+    gap: 10px;
     margin-top: 15px;
 }
-#reserve-icons {
-    display: flex;
-    gap: 10px;
+.reserve-row {
+    display: flex; align-items: center; justify-content: center; gap: 10px;
 }
-.reserve-icon {
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    border: 2px solid #555;
-    background-color: #222;
-    box-shadow: inset 0 0 5px #000;
-    transition: all 0.3s ease;
+.reserve-label {
+    font-size: 16px; font-weight: bold; color: #fff;
+    text-shadow: 0 0 10px #00aaff; width: 80px; text-align: right;
+}
+.reserve-icons {
+    display: flex; gap: 10px;
 }
 
-/* 先読み保留の色パターン（脳汁ポイント） */
+/* ランプの共通デザイン */
+.reserve-icon {
+    width: 20px; height: 20px;
+    border: 2px solid #555; background-color: #222;
+    box-shadow: inset 0 0 5px #000; transition: all 0.3s ease;
+}
+/* ヘソ（丸）と電チュー（四角）の切り分け */
+.heso-icon { border-radius: 50%; }
+.denchu-icon { border-radius: 4px; }
+
+/* 保留の色（脳汁ポイント） */
 .res-white { background-color: #fff; border-color: #ddd; box-shadow: 0 0 10px #fff; }
 .res-blue  { background-color: #00aaff; border-color: #0077cc; box-shadow: 0 0 15px #00aaff; }
 .res-green { background-color: #00ff00; border-color: #00aa00; box-shadow: 0 0 20px #00ff00; }
 .res-red   { 
-    background-color: #ff0055; 
-    border-color: #ffcc00; 
+    background-color: #ff0055; border-color: #ffcc00; 
     box-shadow: 0 0 20px #ff0055, 0 0 40px #ff0055; 
-    animation: flashAnimation 0.1s infinite alternate; /* 赤保留は激しく明滅！ */
+    animation: flashAnimation 0.1s infinite alternate; 
 }
-
-/* --- ★新規追加：リーチ（テンパイ）時の激アツ演出 --- */
-
-/* 盤面全体を赤くする */
-.reach-board-effect {
-    box-shadow: 0 0 50px rgba(255, 0, 0, 0.9), 0 0 100px rgba(255, 0, 0, 0.5) !important;
-    animation: reachFlash 0.3s ease infinite alternate !important;
-}
-
-/* 液晶モニターの枠を激しく赤く明滅させる */
-.reach-slot-effect {
-    border-color: #ff0000 !important;
-    box-shadow: 0 0 40px #ff0000, inset 0 0 40px #ff0000 !important;
-    animation: reachFlash 0.3s ease infinite alternate !important;
-}
-
-@keyframes reachFlash {
-    0% { filter: brightness(1); }
-    100% { filter: brightness(1.5); }
-}
-
-/* ★ モード表示エリア */
-#mode-display {
-    margin-top: 15px;
-    padding: 10px 20px;
-    border-radius: 10px;
-    text-align: center;
-    font-family: 'Courier New', Courier, monospace;
-    font-weight: bold;
-}
-#mode-display p {
-    margin: 5px 0;
-    font-size: 18px;
-}
-#mode-name {
-    font-size: 22px;
-    letter-spacing: 2px;
-}
-
-/* ST中：赤紫の脈動オーバーレイ */
-.st-effect {
-    background: linear-gradient(135deg, rgba(170,0,255,0.25), rgba(255,0,85,0.25));
-    animation: stPulse 1.5s ease-in-out infinite alternate;
-}
-@keyframes stPulse {
-    from { opacity: 0.5; }
-    to   { opacity: 1.0; }
-}
-
-/* 時短中：青いオーバーレイ */
-.tanjun-effect {
-    background: rgba(0, 170, 255, 0.15);
-    animation: tanjunPulse 2s ease-in-out infinite alternate;
-}
-@keyframes tanjunPulse {
-    from { opacity: 0.4; }
-    to   { opacity: 0.9; }
-}
-
-/* ST中：盤面背景を赤紫に */
-.mode-st canvas {
-    background-image: 
-        linear-gradient(rgba(80,0,60,0.6), rgba(40,0,80,0.9)),
-        url('https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=500&h=700&fit=crop');
-    box-shadow: 0 0 60px rgba(255,0,85,0.9), 0 0 120px rgba(170,0,255,0.5);
-}
-.mode-st #side-panel {
-    border-color: #ff0055;
-    box-shadow: 0 0 30px rgba(255,0,85,0.8), 0 0 100px rgba(255,0,85,0.3);
-}
-.mode-st #mode-display {
-    background: rgba(255,0,85,0.2);
-    border: 2px solid #ff0055;
-    box-shadow: 0 0 20px rgba(255,0,85,0.6);
-    color: #ff6688;
-    text-shadow: 0 0 10px #ff0055;
-}
-
-/* 時短中：盤面背景を青に */
-.mode-tanjun canvas {
-    background-image: 
-        linear-gradient(rgba(0,30,80,0.6), rgba(0,10,60,0.9)),
-        url('https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=500&h=700&fit=crop');
-    box-shadow: 0 0 60px rgba(0,170,255,0.9), 0 0 120px rgba(0,100,255,0.4);
-}
-.mode-tanjun #side-panel {
-    border-color: #00aaff;
-    box-shadow: 0 0 30px rgba(0,170,255,0.8), 0 0 100px rgba(0,170,255,0.3);
-}
-.mode-tanjun #mode-display {
-    background: rgba(0,170,255,0.15);
-    border: 2px solid #00aaff;
-    box-shadow: 0 0 20px rgba(0,170,255,0.6);
-    color: #66ccff;
-    text-shadow: 0 0 10px #00aaff;
-}
-
-/* --- リーチ演出テキスト --- */
-#reach-text {
-    width: 90%;
-    text-align: center;
-    font-size: 22px;
-    font-weight: bold;
-    letter-spacing: 3px;
-    padding: 6px 0;
-    border-radius: 8px;
-    margin-bottom: 6px;
-    font-family: 'Courier New', Courier, monospace;
-}
-
-/* ノーマルリーチ：赤（現状維持） */
-.reach-normal #digital-screen {
-    border-color: #ff0000;
-    box-shadow: 0 0 40px #ff0000, inset 0 0 40px #ff0000;
-    animation: reachFlash 0.3s ease infinite alternate;
-}
-
-/* SPリーチ：紫 */
-.reach-sp #digital-screen {
-    border-color: #aa00ff;
-    box-shadow: 0 0 40px #aa00ff, inset 0 0 40px #aa00ff;
-    animation: reachFlash 0.3s ease infinite alternate;
-    background-color: #1a0033;
-}
-.reach-sp #reach-text {
-    color: #cc88ff;
-    text-shadow: 0 0 15px #aa00ff, 0 0 30px #aa00ff;
-    border: 2px solid #aa00ff;
-    background: rgba(170, 0, 255, 0.15);
-}
-
-/* スーパーSPリーチ：金 */
-.reach-supersp #digital-screen {
-    border-color: #ffcc00;
-    box-shadow: 0 0 40px #ffcc00, inset 0 0 40px #ffaa00;
-    animation: reachFlash 0.2s ease infinite alternate;
-    background-color: #1a1000;
-}
-.reach-supersp #reach-text {
-    color: #ffee88;
-    text-shadow: 0 0 15px #ffcc00, 0 0 30px #ffcc00;
-    border: 2px solid #ffcc00;
-    background: rgba(255, 204, 0, 0.15);
-    animation: reachFlash 0.2s ease infinite alternate;
-}
-
-/* 全回転リーチ：虹 */
-.reach-zenkaiten #digital-screen {
-    border-color: #fff;
-    box-shadow: 0 0 40px #fff, inset 0 0 40px #fff;
-    background: linear-gradient(
-        124deg,
-        rgba(255,36,36,0.4), rgba(255,235,36,0.4),
-        rgba(36,255,78,0.4), rgba(36,255,255,0.4),
-        rgba(36,36,255,0.4), rgba(255,36,255,0.4)
-    );
-    background-size: 1800% 1800%;
-    animation: rainbowAnimation 1s ease infinite;
-}
-.reach-zenkaiten #reach-text {
-    color: #fff;
-    text-shadow: 0 0 20px #fff, 0 0 40px #ffcc00;
-    border: 2px solid #fff;
-    background: rgba(255,255,255,0.1);
-    animation: reachFlash 0.15s ease infinite alternate;
-    font-size: 26px;
-}
-
-/* リーチ中の盤面ネオン（種類別） */
-.reach-sp #game-container {
-    box-shadow: 0 0 60px rgba(170,0,255,0.9), 0 0 120px rgba(170,0,255,0.4) !important;
-}
-.reach-supersp #game-container {
-    box-shadow: 0 0 60px rgba(255,204,0,0.9), 0 0 120px rgba(255,204,0,0.4) !important;
-}
-.reach-zenkaiten #game-container {
-    box-shadow: 0 0 60px rgba(255,255,255,0.9), 0 0 120px rgba(255,204,0,0.4) !important;
-    animation: reachFlash 0.15s ease infinite alternate;
-}
-
-/* --- 保留追加色 --- */
 .res-shoki {
-    background: radial-gradient(circle, #aa00ff, #00ff88);
-    border-color: #76ff03;
+    background: radial-gradient(circle, #aa00ff, #00ff88); border-color: #76ff03;
     box-shadow: 0 0 20px #aa00ff, 0 0 40px #00ff88;
     animation: shokiPulse 0.8s ease-in-out infinite alternate;
 }
@@ -557,11 +195,9 @@ canvas {
     from { box-shadow: 0 0 15px #aa00ff, 0 0 30px #00ff88; }
     to   { box-shadow: 0 0 35px #aa00ff, 0 0 60px #00ff88; transform: scale(1.15); }
 }
-
 .res-rainbow {
     background: linear-gradient(124deg, #ff0000, #ffcc00, #00ff00, #00aaff, #aa00ff);
-    background-size: 400% 400%;
-    border-color: #fff;
+    background-size: 400% 400%; border-color: #fff;
     box-shadow: 0 0 25px #fff, 0 0 50px #ffcc00;
     animation: rainbowReserve 1s ease infinite;
 }
@@ -570,8 +206,6 @@ canvas {
     50%  { background-position: 100% 50%; }
     100% { background-position: 0% 50%; }
 }
-
-/* 震動保留：任意の色に付加して激しく振動 */
 .res-shake {
     animation: reserveShake 0.1s infinite;
 }
@@ -583,23 +217,113 @@ canvas {
     100% { transform: translate(-2px, -2px); }
 }
 
-/* --- ロンギヌス演出オーバーレイ --- */
-#longinus-overlay {
-    position: fixed;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    pointer-events: none;
-    z-index: 500;
-    display: none;
+/* =========================================
+   ST（IMPACT MODE）・時短 関連
+========================================= */
+#mode-display {
+    margin-top: 15px; padding: 10px 20px; border-radius: 10px;
+    text-align: center; font-family: 'Courier New', Courier, monospace; font-weight: bold;
+}
+#mode-display p { margin: 5px 0; font-size: 18px; }
+#mode-name { font-size: 22px; letter-spacing: 2px; }
+
+/* ST中のエフェクト（赤紫） */
+.st-effect {
+    background: linear-gradient(135deg, rgba(170,0,255,0.25), rgba(255,0,85,0.25));
+    animation: stPulse 1.5s ease-in-out infinite alternate;
+}
+@keyframes stPulse { from { opacity: 0.5; } to { opacity: 1.0; } }
+
+.mode-st canvas {
+    background-image: linear-gradient(rgba(80,0,60,0.6), rgba(40,0,80,0.9)), url('https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=500&h=700&fit=crop');
+    box-shadow: 0 0 60px rgba(255,0,85,0.9), 0 0 120px rgba(170,0,255,0.5);
+}
+.mode-st #side-panel {
+    border-color: #ff0055; box-shadow: 0 0 30px rgba(255,0,85,0.8), 0 0 100px rgba(255,0,85,0.3);
+}
+.mode-st #mode-display {
+    background: rgba(255,0,85,0.2); border: 2px solid #ff0055;
+    box-shadow: 0 0 20px rgba(255,0,85,0.6); color: #ff6688; text-shadow: 0 0 10px #ff0055;
 }
 
-/* 槍が刺さる瞬間の赤白フラッシュ */
+/* 時短中のエフェクト（青） */
+.tanjun-effect {
+    background: rgba(0, 170, 255, 0.15);
+    animation: tanjunPulse 2s ease-in-out infinite alternate;
+}
+@keyframes tanjunPulse { from { opacity: 0.4; } to { opacity: 0.9; } }
+
+.mode-tanjun canvas {
+    background-image: linear-gradient(rgba(0,30,80,0.6), rgba(0,10,60,0.9)), url('https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=500&h=700&fit=crop');
+    box-shadow: 0 0 60px rgba(0,170,255,0.9), 0 0 120px rgba(0,100,255,0.4);
+}
+.mode-tanjun #side-panel {
+    border-color: #00aaff; box-shadow: 0 0 30px rgba(0,170,255,0.8), 0 0 100px rgba(0,170,255,0.3);
+}
+.mode-tanjun #mode-display {
+    background: rgba(0,170,255,0.15); border: 2px solid #00aaff;
+    box-shadow: 0 0 20px rgba(0,170,255,0.6); color: #66ccff; text-shadow: 0 0 10px #00aaff;
+}
+
+/* =========================================
+   リーチ・全回転演出
+========================================= */
+#reach-text {
+    width: 90%; text-align: center; font-size: 22px; font-weight: bold;
+    letter-spacing: 3px; padding: 6px 0; border-radius: 8px;
+    margin-bottom: 6px; font-family: 'Courier New', Courier, monospace;
+}
+
+/* リーチ共通：盤面や液晶を明滅 */
+.reach-board-effect { box-shadow: 0 0 50px rgba(255, 0, 0, 0.9), 0 0 100px rgba(255, 0, 0, 0.5) !important; animation: reachFlash 0.3s ease infinite alternate !important; }
+.reach-slot-effect { border-color: #ff0000 !important; box-shadow: 0 0 40px #ff0000, inset 0 0 40px #ff0000 !important; animation: reachFlash 0.3s ease infinite alternate !important; }
+@keyframes reachFlash { 0% { filter: brightness(1); } 100% { filter: brightness(1.5); } }
+
+/* 種類別リーチ演出 */
+.reach-normal #digital-screen { border-color: #ff0000; box-shadow: 0 0 40px #ff0000, inset 0 0 40px #ff0000; animation: reachFlash 0.3s ease infinite alternate; }
+
+.reach-sp #digital-screen { border-color: #aa00ff; box-shadow: 0 0 40px #aa00ff, inset 0 0 40px #aa00ff; background-color: #1a0033; animation: reachFlash 0.3s ease infinite alternate; }
+.reach-sp #reach-text { color: #cc88ff; text-shadow: 0 0 15px #aa00ff, 0 0 30px #aa00ff; border: 2px solid #aa00ff; background: rgba(170, 0, 255, 0.15); }
+.reach-sp #game-container { box-shadow: 0 0 60px rgba(170,0,255,0.9), 0 0 120px rgba(170,0,255,0.4) !important; }
+
+.reach-supersp #digital-screen { border-color: #ffcc00; box-shadow: 0 0 40px #ffcc00, inset 0 0 40px #ffaa00; background-color: #1a1000; animation: reachFlash 0.2s ease infinite alternate; }
+.reach-supersp #reach-text { color: #ffee88; text-shadow: 0 0 15px #ffcc00, 0 0 30px #ffcc00; border: 2px solid #ffcc00; background: rgba(255, 204, 0, 0.15); animation: reachFlash 0.2s ease infinite alternate; }
+.reach-supersp #game-container { box-shadow: 0 0 60px rgba(255,204,0,0.9), 0 0 120px rgba(255,204,0,0.4) !important; }
+
+.reach-zenkaiten #digital-screen { 
+    border-color: #fff; box-shadow: 0 0 40px #fff, inset 0 0 40px #fff;
+    background: linear-gradient(124deg, rgba(255,36,36,0.4), rgba(255,235,36,0.4), rgba(36,255,78,0.4), rgba(36,255,255,0.4), rgba(36,36,255,0.4), rgba(255,36,255,0.4));
+    background-size: 1800% 1800%; animation: rainbowAnimation 1s ease infinite; 
+}
+.reach-zenkaiten #reach-text { color: #fff; text-shadow: 0 0 20px #fff, 0 0 40px #ffcc00; border: 2px solid #fff; background: rgba(255,255,255,0.1); font-size: 26px; animation: reachFlash 0.15s ease infinite alternate; }
+.reach-zenkaiten #game-container { box-shadow: 0 0 60px rgba(255,255,255,0.9), 0 0 120px rgba(255,204,0,0.4) !important; animation: reachFlash 0.15s ease infinite alternate; }
+
+/* =========================================
+   大当たり中テキスト
+========================================= */
+#jackpot-message {
+    position: absolute; bottom: 20px; width: 100%; text-align: center;
+    font-size: 50px; font-weight: bold; color: #fff;
+    text-shadow: 0 0 20px #ff0055, 0 0 40px #ff0055, 0 0 60px #ffcc00;
+    display: none; z-index: 110;
+}
+#jackpot-info {
+    margin-top: 20px; background: rgba(255, 0, 85, 0.3);
+    border: 3px solid #ff0055; padding: 10px 30px; border-radius: 10px;
+    text-align: center; box-shadow: 0 0 30px rgba(255, 0, 85, 0.7); 
+}
+#jackpot-info p { margin: 5px 0; font-size: 24px; font-weight: bold; color: #fff; font-family: 'Courier New', Courier, monospace; }
+#round-display, #count-display { color: #fff; text-shadow: 0 0 15px #ffcc00, 0 0 30px #ffcc00; font-size: 32px; }
+
+/* =========================================
+   ロンギヌスの槍演出
+========================================= */
+#longinus-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    pointer-events: none; z-index: 500; display: none;
+}
 .longinus-flash {
-    background: radial-gradient(circle at 50% 30%,
-        rgba(255, 255, 255, 0.95),
-        rgba(255, 0, 85, 0.7),
-        transparent 70%
-    );
+    background: radial-gradient(circle at 50% 30%, rgba(255, 255, 255, 0.95), rgba(255, 0, 85, 0.7), transparent 70%);
     animation: longinusFlash 0.4s ease-out forwards;
 }
 @keyframes longinusFlash {
@@ -607,22 +331,9 @@ canvas {
     40%  { opacity: 1; transform: scale(1.2); }
     100% { opacity: 0; transform: scale(1.5); }
 }
-
-/* 槍の軌跡ライン */
 .longinus-line {
-    background: linear-gradient(
-        to bottom,
-        transparent,
-        rgba(255, 50, 50, 0.9) 40%,
-        rgba(255, 255, 255, 1) 50%,
-        rgba(255, 50, 50, 0.9) 60%,
-        transparent
-    );
-    width: 4px;
-    position: absolute;
-    left: 50%;
-    top: 0;
-    height: 100%;
+    background: linear-gradient(to bottom, transparent, rgba(255, 50, 50, 0.9) 40%, rgba(255, 255, 255, 1) 50%, rgba(255, 50, 50, 0.9) 60%, transparent);
+    width: 4px; position: absolute; left: 50%; top: 0; height: 100%;
     animation: longinusLine 0.3s ease-out forwards;
 }
 @keyframes longinusLine {
@@ -630,50 +341,47 @@ canvas {
     100% { transform: scaleY(1) translateY(0); opacity: 0; }
 }
 
-/* --- ★修正：保留変化システムのUIデザイン（2段化） --- */
-#reserve-display {
-    display: flex;
-    flex-direction: column; /* 縦並びに変更 */
-    gap: 10px;
-    margin-top: 15px;
+/* =========================================
+   スマホ用レイアウト＆ボタン
+========================================= */
+#mobile-controls {
+    display: none; justify-content: center; gap: 15px;
+    width: 100%; margin-top: 10px; z-index: 200;
 }
-.reserve-row {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
+.control-btn {
+    padding: 15px 20px; font-size: 20px; font-weight: bold; border-radius: 10px;
+    border: 2px solid #76ff03; background-color: #2a1b38; color: #fff;
+    box-shadow: 0 0 10px rgba(118, 255, 3, 0.4); touch-action: manipulation; 
+    user-select: none; cursor: pointer;
 }
-.reserve-label {
-    font-size: 16px;
-    font-weight: bold;
-    color: #fff;
-    text-shadow: 0 0 10px #00aaff;
-    width: 80px; /* ラベルの幅を揃える */
-    text-align: right;
+.shoot-btn {
+    background-color: #ff0055; border-color: #ffcc00;
+    box-shadow: 0 0 20px rgba(255, 0, 85, 0.6); padding: 15px 40px;
 }
-.reserve-icons {
-    display: flex;
-    gap: 10px;
-}
+.shoot-btn:active { transform: scale(0.95); background-color: #cc0044; }
 
-/* ヘソ保留（今まで通りの丸） */
-.heso-icon {
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    border: 2px solid #555;
-    background-color: #222;
-    box-shadow: inset 0 0 5px #000;
-    transition: all 0.3s ease;
-}
-
-/* 電チュー保留（右打ち用は少しシャープな四角） */
-.denchu-icon {
-    width: 20px;
-    height: 20px;
-    border-radius: 4px;
-    border: 2px solid #555;
-    background-color: #222;
-    box-shadow: inset 0 0 5px #000;
-    transition: all 0.3s ease;
+@media (max-width: 850px) {
+    body { align-items: flex-start; padding: 10px 0 20px 0; overflow-y: auto; overflow-x: hidden; }
+    #app-wrapper { flex-direction: column; align-items: center; gap: 10px; width: 100%; }
+    
+    #side-panel { order: 1; width: 90vw; height: auto; padding: 15px; box-sizing: border-box; }
+    #ui { width: 100%; margin-bottom: 10px; padding: 8px 15px; }
+    #ui p { font-size: 16px; }
+    .highlight { font-size: 20px; }
+    #side-panel h2 { font-size: 16px; margin: 5px 0; }
+    #digital-screen { width: 100%; height: 80px; font-size: 50px; margin: 5px 0 10px 0; }
+    #reserve-display { margin-top: 8px; font-size: 16px; }
+    #jackpot-info { padding: 5px 15px; margin-top: 8px; }
+    #jackpot-info p { font-size: 18px; }
+    #round-display, #count-display { font-size: 24px; }
+    
+    #mode-display { margin-top: 8px; padding: 6px 12px; }
+    #mode-name { font-size: 16px; }
+    #mode-display p { font-size: 14px; }
+    
+    #game-container {
+        order: 2; transform: scale(calc(90vw / 500px)); transform-origin: top left;
+        margin-left: 5vw; margin-bottom: calc((90vw - 500px) * 700 / 500);
+    }
+    #mobile-controls { display: none; } /* タッチ操作メインのため非表示 */
 }
