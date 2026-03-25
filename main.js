@@ -13,7 +13,6 @@ const engine = Engine.create();
 const canvasWidth = 500;
 const canvasHeight = 700;
 
-// リーチテキストのDOM参照
 const reachTextEl = document.getElementById('reach-text');
 
 const render = Render.create({
@@ -45,16 +44,16 @@ let isSpinning = false;
 let gameMode = 'normal';
 let modeSpinsLeft = 0;
 
-// 大当たり確率
-const JACKPOT_PROB_NORMAL = 1 / 319;
+// ★ テスト用大当たり確率（そのまま活かします！）
+const JACKPOT_PROB_NORMAL = 1 / 2;
 const JACKPOT_PROB_ST     = 1 / 99;
 
-// ★大改修：保留データを「ヘソ」と「電チュー」に完全分割
+// 保留データを「ヘソ」と「電チュー」に分割
 let hesoReserves = []; 
 let denchuReserves = []; 
 const MAX_RESERVE = 4;  
 let currentPower = 50;
-let currentSpinType = null; // ヘソと電チュー、どちらで当たったかを記憶する
+let currentSpinType = null; // 今どっちの保留を消化しているか記憶する
 
 // ラウンド管理
 let currentRound = 0;
@@ -78,9 +77,9 @@ const modeNameEl        = document.getElementById('mode-name');
 const modeSpinsLeftEl   = document.getElementById('mode-spins-left');
 const longinusOverlayEl = document.getElementById('longinus-overlay');
 
-// ★変更：保留アイコンのDOMも2段に分割
+// 保留アイコンの取得を2つに分割
 const hesoIcons   = document.querySelectorAll('.heso-icon'); 
-const denchuIcons = document.querySelectorAll('.denchu-icon'); 
+const denchuIcons = document.querySelectorAll('.denchu-icon');
 
 const slotEls = [
     document.getElementById('slot-1'),
@@ -88,12 +87,10 @@ const slotEls = [
     document.getElementById('slot-3')
 ];
 
-// 大当たり確率をモードに応じて返す
 function getJackpotProbability() {
     return gameMode === 'st' ? JACKPOT_PROB_ST : JACKPOT_PROB_NORMAL;
 }
 
-// モードに応じて盤面・パネルの見た目を切り替える
 function applyModeVisuals() {
     document.body.classList.remove('mode-st', 'mode-tanjun');
     if (jackpotOverlayEl) {
@@ -122,7 +119,6 @@ function applyModeVisuals() {
     }
 }
 
-// 残り回転数を1減らし、0になったらモード終了
 function countDownSpin() {
     if (gameMode === 'normal') return;
     modeSpinsLeft--;
@@ -130,7 +126,6 @@ function countDownSpin() {
     if (modeSpinsLeft <= 0) endMode();
 }
 
-// モード終了処理
 function endMode() {
     gameMode = 'normal';
     modeSpinsLeft = 0;
@@ -139,21 +134,14 @@ function endMode() {
     applyModeVisuals();
 }
 
-// ★修正：保留UIの更新（ヘソと電チュー両方）
 function updateReserveUI() {
     hesoIcons.forEach((icon, index) => {
         icon.className = 'reserve-icon heso-icon';
-        if (index < hesoReserves.length) {
-            icon.classList.add(`res-${hesoReserves[index].color}`);
-            if (hesoReserves[index].shake) icon.classList.add('res-shake');
-        }
+        if (index < hesoReserves.length) icon.classList.add(`res-${hesoReserves[index].color}`);
     });
     denchuIcons.forEach((icon, index) => {
         icon.className = 'reserve-icon denchu-icon';
-        if (index < denchuReserves.length) {
-            icon.classList.add(`res-${denchuReserves[index].color}`);
-            if (denchuReserves[index].shake) icon.classList.add('res-shake');
-        }
+        if (index < denchuReserves.length) icon.classList.add(`res-${denchuReserves[index].color}`);
     });
 }
 
@@ -181,7 +169,7 @@ function handleFire() {
     }
 }
 
-// ★修正：引数で「heso」か「denchu」を受け取る
+// 引数で「heso」か「denchu」を受け取り、別々の配列に積む
 function addReserve(type) {
     const targetArray = (type === 'denchu') ? denchuReserves : hesoReserves;
 
@@ -213,12 +201,11 @@ function addReserve(type) {
 }
 
 function checkAndSpin() {
-    // どっちにも保留がなければ回さない
     if (isSpinning || isJackpot || (hesoReserves.length === 0 && denchuReserves.length === 0)) return;
 
     let currentData = null;
 
-    // ★激アツ！電チュー保留を絶対に優先して消化する
+    // 電チュー保留を「絶対に」優先して消化する
     if (denchuReserves.length > 0) {
         currentData = denchuReserves.shift();
         currentSpinType = 'denchu';
@@ -229,12 +216,13 @@ function checkAndSpin() {
 
     updateReserveUI(); 
     isSpinning = true;
+
     countDownSpin();
     
     const isRush = (gameMode === 'st' || gameMode === 'tanjun');
     const isWin = currentData.isWin;
 
-    // ★バグ修正：古い reserves 変数を削除して、両方の配列を見るように修正
+    // ★修正：古い reserves 変数を削除して配列の中身をチェック
     if (hesoReserves.length > 0 || denchuReserves.length > 0) {
         const changeProb = isWin ? 0.4 : 0.05;
         if (Math.random() < changeProb) {
@@ -260,6 +248,7 @@ function checkAndSpin() {
         }
     }
 
+    // 個別に止まるようにフラグ管理
     let spinning = [true, true, true];
 
     let shuffleInterval = setInterval(() => {
@@ -328,7 +317,6 @@ function checkAndSpin() {
     }, rightStopTime);
 }
 
-// リーチ種類に応じてbodyにクラスを付与しテキストを表示
 function applyReachClass(type) {
     const textMap = {
         normal:   '',
@@ -352,8 +340,8 @@ function clearReachClass() {
     }
 }
 
-// ロンギヌス演出
 function triggerLonginusChange(isWin) {
+    // ★修正：古い reserves 変数を削除
     if (hesoReserves.length === 0 && denchuReserves.length === 0) return;
 
     if (longinusOverlayEl) {
@@ -378,8 +366,8 @@ function triggerLonginusChange(isWin) {
     }
 }
 
-// ★バグ修正：先頭の保留（電チュー優先）を1段階昇格させる
 function upgradeReserve(isWin) {
+    // ★修正：電チューを優先して昇格対象にする
     let targetArray = null;
     if (denchuReserves.length > 0) targetArray = denchuReserves;
     else if (hesoReserves.length > 0) targetArray = hesoReserves;
@@ -483,12 +471,10 @@ function endRound() {
             jackpotInfoEl.style.display = 'none';
             slotEls.forEach(el => el.innerText = '0');
 
-            // ★激アツのオマケ実装：電チューでの当たりは【100% ST突入】！！
             if (currentSpinType === 'denchu') {
                 gameMode = 'st';
                 modeSpinsLeft = 163;
             } else {
-                // ヘソでの当たりは59%でST、41%で時短
                 if (Math.random() < 0.59) {
                     gameMode = 'st';
                     modeSpinsLeft = 163;
@@ -508,7 +494,6 @@ function endRound() {
     }
 }
 
-// --- 操作イベント ---
 window.addEventListener('mousedown', (e) => { 
     if(e.button === 0) isShooting = true;
     if(typeof sound !== 'undefined') sound.init();
@@ -527,7 +512,6 @@ window.addEventListener('keyup', (event) => {
     if (event.key === 'Enter') isShooting = false;
 });
 
-// --- タッチ操作 ---
 let touchStartY = 0;
 window.addEventListener('touchstart', (e) => {
     touchStartY = e.touches[0].clientY;
@@ -555,7 +539,6 @@ Events.on(engine, 'beforeUpdate', () => {
     if (isShooting) handleFire();
 });
 
-// --- 衝突判定 ---
 Events.on(engine, 'collisionStart', function(event) {
     event.pairs.forEach((pair) => {
         const bodyA = pair.bodyA;
@@ -566,7 +549,7 @@ Events.on(engine, 'collisionStart', function(event) {
             if(typeof sound !== 'undefined' && typeof sound.playPegHit === 'function') sound.playPegHit();
         }
 
-        // --- ★ヘソ入賞（特図1） ---
+        // --- ★修正：引数「'heso'」を追加 ---
         if ((bodyA.label === 'ball' && bodyB.label === 'chucker') ||
             (bodyB.label === 'ball' && bodyA.label === 'chucker')) {
             if(typeof sound !== 'undefined' && typeof sound.playChuckerIn === 'function') sound.playChuckerIn();
@@ -575,22 +558,10 @@ Events.on(engine, 'collisionStart', function(event) {
             ballCount += 3; 
             if (ballCountEl) ballCountEl.innerText = ballCount;
             
-            addReserve('heso'); // ヘソ保留を追加！
+            addReserve('heso'); 
 
             const ballToRemove = bodyA.label === 'ball' ? bodyA : bodyB;
             if (ballToRemove) Composite.remove(engine.world, ballToRemove);
-        }
-
-        // --- 隠しボーナスゲート ---
-        if ((bodyA.label === 'ball' && bodyB.label === 'bonus_gate') ||
-            (bodyB.label === 'ball' && bodyA.label === 'bonus_gate')) {
-            if(typeof sound !== 'undefined' && typeof sound.playBonus === 'function') sound.playBonus();
-            ballCount += 2; 
-            if (ballCountEl) ballCountEl.innerText = ballCount;
-            if (ballCountEl) {
-                ballCountEl.style.textShadow = '0 0 10px #00ff00, 0 0 20px #00ff00';
-                setTimeout(() => { ballCountEl.style.textShadow = ''; }, 200);
-            }
         }
 
         if (bodyA.label === 'out' || bodyB.label === 'out') {
@@ -617,7 +588,7 @@ Events.on(engine, 'collisionStart', function(event) {
             }
         }
         
-        // --- ★電チュー入賞（特図2） ---
+        // --- ★修正：引数「'denchu'」を追加 ---
         if ((bodyA.label === 'ball' && bodyB.label === 'denchu') ||
             (bodyB.label === 'ball' && bodyA.label === 'denchu')) {
             
@@ -632,7 +603,7 @@ Events.on(engine, 'collisionStart', function(event) {
             if (ballCountEl) ballCountEl.innerText = ballCount;
             if(typeof sound !== 'undefined' && typeof sound.playChuckerIn === 'function') sound.playChuckerIn();
 
-            addReserve('denchu'); // 電チュー保留を追加！
+            addReserve('denchu'); 
 
             const ballToRemove = bodyA.label === 'ball' ? bodyA : bodyB;
             if (ballToRemove) Composite.remove(engine.world, ballToRemove);
