@@ -221,17 +221,21 @@ function checkAndSpin() {
         slotEls.forEach(el => el.innerText = Math.floor(Math.random() * 9) + 1);
     }, 50);
 
-    setTimeout(() => { slotEls[0].innerText = leftNum; }, 1000);
+// ★ モードに応じて変動時間を切り替える
+    const isRush = (gameMode === 'st' || gameMode === 'tanjun');
+    const leftStopTime  = isRush ? 500  : 1000; // 左図柄が止まるまでの時間
+    const rightStopTime = isRush ? 1000 : 2000; // 右図柄が止まるまでの時間
+    const reachWaitTime = isRush ? 3000 : 8000; // リーチ後に中図柄が止まるまでの時間
+    const hazureWaitTime= isRush ? 1000 : 2500; // ハズレ確定までの時間
+
+    setTimeout(() => { slotEls[0].innerText = leftNum; }, leftStopTime);
     setTimeout(() => {
         slotEls[2].innerText = rightNum;
         if (leftNum === rightNum) {
             slotEls[1].style.color = '#ff0055'; 
-
             sound.playReach();
-
             document.getElementById('game-container').classList.add('reach-board-effect');
             document.getElementById('digital-screen').classList.add('reach-slot-effect');
-
             setTimeout(() => {
                 clearInterval(shuffleInterval);
                 slotEls[1].innerText = centerNum;
@@ -239,15 +243,15 @@ function checkAndSpin() {
                 document.getElementById('game-container').classList.remove('reach-board-effect');
                 document.getElementById('digital-screen').classList.remove('reach-slot-effect');
                 finishSpin(isWin);
-            }, 8000); 
+            }, reachWaitTime); 
         } else {
             setTimeout(() => {
                 clearInterval(shuffleInterval);
                 slotEls[1].innerText = centerNum;
                 finishSpin(isWin);
-            }, 2500);
+            }, hazureWaitTime);
         }
-    }, 2000);
+    }, rightStopTime);
 }
 
 function finishSpin(isWin) {
