@@ -588,6 +588,7 @@ Events.on(engine, 'collisionStart', function(event) {
         }
         
         // --- ★修正：引数「'denchu'」を追加 ---
+// --- ★修正：引数「'denchu'」を追加 --- の部分を探す
         if ((bodyA.label === 'ball' && bodyB.label === 'denchu') ||
             (bodyB.label === 'ball' && bodyA.label === 'denchu')) {
             
@@ -602,12 +603,20 @@ Events.on(engine, 'collisionStart', function(event) {
             if (ballCountEl) ballCountEl.innerText = ballCount;
             if(typeof sound !== 'undefined' && typeof sound.playChuckerIn === 'function') sound.playChuckerIn();
 
-            addReserve('denchu'); 
+            // ↓↓↓ ここから書き換え ↓↓↓
+            
+            // ★大正解の修正：通常時はヘソ保留、ST/時短中は電チュー保留として扱う！
+            if (gameMode === 'normal') {
+                addReserve('heso');
+            } else {
+                addReserve('denchu'); 
+            }
+
+            // ↑↑↑ ここまで書き換え ↑↑↑
 
             const ballToRemove = bodyA.label === 'ball' ? bodyA : bodyB;
             if (ballToRemove) Composite.remove(engine.world, ballToRemove);
-        }    
-
+        }
         if ((bodyA.label === 'ball' && bodyB.label === 'attacker') ||
             (bodyB.label === 'ball' && bodyA.label === 'attacker')) {
             
