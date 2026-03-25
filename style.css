@@ -252,35 +252,85 @@ canvas {
     background-color: #cc0044;
 }
 
-/* --- ★新規追加：スマホ閲覧時（画面幅が850px以下）のレイアウト変更 --- */
 @media (max-width: 850px) {
+
     body {
-        align-items: flex-start; /* 画面の一番上から配置 */
-        padding-top: 20px;
-        padding-bottom: 50px;
-        overflow-y: auto; /* 縦スクロールを許可 */
+        align-items: flex-start;
+        padding: 10px 0 20px 0;
+        overflow-y: auto;
+        overflow-x: hidden;
     }
-    
+
     #app-wrapper {
-        flex-direction: column; /* パネルと台を縦並びにする */
-        gap: 20px;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
     }
 
+    /* サイドパネルを上に */
+    #side-panel {
+        order: 1;
+        width: 90vw;
+        height: auto;
+        padding: 15px;
+        box-sizing: border-box;
+    }
+
+    #ui {
+        width: 100%;
+        margin-bottom: 10px;
+        padding: 8px 15px;
+    }
+    #ui p { font-size: 16px; }
+    .highlight { font-size: 20px; }
+
+    #side-panel h2 {
+        font-size: 16px;
+        margin: 5px 0;
+    }
+
+    #digital-screen {
+        width: 100%;
+        height: 80px;
+        font-size: 50px;
+        margin: 5px 0 10px 0;
+    }
+
+    #reserve-display {
+        margin-top: 8px;
+        font-size: 16px;
+    }
+
+    #jackpot-info {
+        padding: 5px 15px;
+        margin-top: 8px;
+    }
+    #jackpot-info p { font-size: 18px; }
+    #round-display, #count-display { font-size: 24px; }
+
+    #mode-display {
+        margin-top: 8px;
+        padding: 6px 12px;
+    }
+    #mode-name { font-size: 16px; }
+    #mode-display p { font-size: 14px; }
+
+    /* 盤面を下に・画面幅に収まるよう縮小 */
     #game-container {
-        /* スマホの画面に収まるように少し縮小（必要に応じて数値を調整してください） */
-        transform: scale(0.8); 
-        transform-origin: top center;
-        margin-bottom: -140px; /* 縮小して余った下のスペースを詰める */
+        order: 2;
+        transform: scale(calc(90vw / 500px));
+        transform-origin: top left;
+        margin-left: 5vw;
+        /* 縮小した分の余白を打ち消す */
+        margin-bottom: calc((90vw - 500px) * 700 / 500);
     }
 
-/* 縮小した台に合わせるためにスマホ版コントローラーの幅を調整 */
+    /* ボタンは非表示（タッチ操作に切り替えるため） */
     #mobile-controls {
-        display: flex; /* ★追加：スマホの時だけボタンを復活させて横に並べる！ */
-        transform: scale(0.9);
+        display: none;
     }
-}
-
-/* --- ★新規追加：保留変化システムのUIデザイン --- */
+}/* --- ★新規追加：保留変化システムのUIデザイン --- */
 #reserve-display {
     display: flex;
     align-items: center;

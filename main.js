@@ -368,23 +368,36 @@ window.addEventListener('keyup', (event) => {
     if (event.key === 'Enter') isShooting = false;
 });
 
-const btnShoot     = document.getElementById('btn-shoot');
+// --- タッチ操作（スマホ用） ---
+let touchStartY = 0;
+
+// 画面タップ長押し → 発射
+window.addEventListener('touchstart', (e) => {
+    touchStartY = e.touches[0].clientY;
+    isShooting = true;
+    sound.init();
+}, { passive: true });
+
+window.addEventListener('touchend', () => {
+    isShooting = false;
+});
+
+// 上下スワイプ → パワー調整
+window.addEventListener('touchmove', (e) => {
+    const currentY = e.touches[0].clientY;
+    const deltaY = touchStartY - currentY; // 上スワイプ = 正の値
+
+    if (Math.abs(deltaY) > 10) {
+        updatePower(deltaY > 0 ? 3 : -3);
+        touchStartY = currentY; // 基準点を更新（連続スワイプ対応）
+    }
+}, { passive: true });
+
+// PCボタンは念のため残す（スマホでは非表示）
 const btnPowerUp   = document.getElementById('btn-power-up');
 const btnPowerDown = document.getElementById('btn-power-down');
-
-if (btnShoot) {
-    btnShoot.addEventListener('touchstart', (e) => { e.preventDefault(); isShooting = true; sound.init(); });
-    btnShoot.addEventListener('touchend',   (e) => { e.preventDefault(); isShooting = false; });
-}
-if (btnPowerUp) {
-    btnPowerUp.addEventListener('touchstart', (e) => { e.preventDefault(); updatePower(5); });
-    btnPowerUp.addEventListener('mousedown',  () => { updatePower(5); }); 
-}
-if (btnPowerDown) {
-    btnPowerDown.addEventListener('touchstart', (e) => { e.preventDefault(); updatePower(-5); });
-    btnPowerDown.addEventListener('mousedown',  () => { updatePower(-5); }); 
-}
-
+if (btnPowerUp)   btnPowerUp.addEventListener('mousedown',   () => { updatePower(5);  });
+if (btnPowerDown) btnPowerDown.addEventListener('mousedown', () => { updatePower(-5); });
 Events.on(engine, 'beforeUpdate', () => {
     if (isShooting) handleFire();
 });
