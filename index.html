@@ -7,7 +7,8 @@
     <title>自作パチンコシミュレーター</title>
     <link rel="stylesheet" href="style.css">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-</head><body>
+</head>
+<body>
     <div id="app-wrapper">
         
         <div id="side-panel">
@@ -15,6 +16,9 @@
                 <p>持ち玉: <span id="ball-count" class="highlight">100</span> 発</p>
                 <p>スタート: <span id="start-count" class="highlight">0</span> 回</p>
             </div>
+
+            <!-- ★ リーチ演出テキスト -->
+            <div id="reach-text" style="display:none;">リーチ！</div>
 
             <h2>エヴァ15風 液晶モニター</h2>
             <div id="digital-screen">
@@ -65,5 +69,8 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
     <script type="module" src="main.js"></script>
+
+    <!-- ★ ロンギヌス演出オーバーレイ -->
+    <div id="longinus-overlay"></div>
 </body>
 </html>

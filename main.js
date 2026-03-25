@@ -12,6 +12,8 @@ const Engine = Matter.Engine,
 const engine = Engine.create();
 const canvasWidth = 500;
 const canvasHeight = 700;
+// ★ リーチテキストのDOM参照
+const reachTextEl = document.getElementById('reach-text');
 
 const render = Render.create({
     element: document.getElementById('game-container'),
@@ -74,6 +76,7 @@ const canvasEl          = document.querySelector('canvas');
 const modeDisplayEl     = document.getElementById('mode-display');
 const modeNameEl        = document.getElementById('mode-name');
 const modeSpinsLeftEl   = document.getElementById('mode-spins-left');
+const longinusOverlayEl = document.getElementById('longinus-overlay');
 
 const slotEls = [
     document.getElementById('slot-1'),
@@ -167,26 +170,34 @@ function handleFire() {
     }
 }
 
-// ★ 保留を積む共通処理（ヘソ・電チュー両方から呼ぶ）
 function addReserve() {
     if (reserves.length >= MAX_RESERVE || isJackpot) return;
 
     const isWin = Math.random() < getJackpotProbability();
-    let color = 'white'; 
-    
+    let color = 'white';
+    let shake = false;
+
     if (isWin) {
-        color = Math.random() < 0.7 ? 'red' : 'green';
+        const r = Math.random();
+        if (r < 0.05)       { color = 'rainbow'; }           // 5%：虹（ほぼ確定）
+        else if (r < 0.20)  { color = 'shoki'; }             // 15%：初号機
+        else if (r < 0.50)  { color = 'red'; }               // 30%：赤
+        else                { color = 'green'; }              // 50%：緑
+        if (Math.random() < 0.3) shake = true;               // 30%で震動付加
     } else {
         const r = Math.random();
-        if (r < 0.05)       color = 'green';
-        else if (r < 0.20)  color = 'blue';
+        if (r < 0.02)       { color = 'shoki'; }             // 2%：初号機（ガセ）
+        else if (r < 0.05)  { color = 'rainbow'; shake = true; } // 3%：虹（ガセ）
+        else if (r < 0.10)  { color = 'red'; }               // 5%：赤（ガセ）
+        else if (r < 0.20)  { color = 'green'; }             // 10%：緑
+        else if (r < 0.40)  { color = 'blue'; }              // 20%：青
+                                                              // 残り：白
     }
-    
-    reserves.push({ isWin, color });
-    updateReserveUI(); 
-    checkAndSpin(); 
-}
 
+    reserves.push({ isWin, color, shake });
+    updateReserveUI();
+    checkAndSpin();
+}
 function checkAndSpin() {
     if (isSpinning || isJackpot || reserves.length === 0) return;
 
@@ -223,28 +234,50 @@ function checkAndSpin() {
 
 // ★ モードに応じて変動時間を切り替える
     const isRush = (gameMode === 'st' || gameMode === 'tanjun');
-    const leftStopTime  = isRush ? 500  : 1000; // 左図柄が止まるまでの時間
-    const rightStopTime = isRush ? 1000 : 2000; // 右図柄が止まるまでの時間
-    const reachWaitTime = isRush ? 3000 : 8000; // リーチ後に中図柄が止まるまでの時間
-    const hazureWaitTime= isRush ? 1000 : 2500; // ハズレ確定までの時間
+    const leftStopTime  = isRush ? 200 : 300; // 左図柄が止まるまでの時間
+    const rightStopTime = isRush ? 200 : 300; // 右図柄が止まるまでの時間
+    const reachWaitTime = isRush ? 200 : 300; // リーチ後に中図柄が止まるまでの時間
+    const hazureWaitTime= isRush ? 200 : 300; // ハズレ確定までの時間
 
     setTimeout(() => { slotEls[0].innerText = leftNum; }, leftStopTime);
     setTimeout(() => {
         slotEls[2].innerText = rightNum;
-        if (leftNum === rightNum) {
-            slotEls[1].style.color = '#ff0055'; 
+if (leftNum === rightNum) {
+            slotEls[1].style.color = '#ff0055';
             sound.playReach();
-            document.getElementById('game-container').classList.add('reach-board-effect');
-            document.getElementById('digital-screen').classList.add('reach-slot-effect');
+
+            // ★ 全回転リーチ：大当たり時5%で発生（3図柄同時にシャッフル継続）
+            const isZenkaiten = isWin && Math.random() < 0.05;
+
+            // ★ リーチ種類を抽選（全回転以外）
+            let reachType = 'normal';
+            if (!isZenkaiten) {
+                const r = Math.random();
+                if (r < 0.12)      reachType = 'supersp'; // 12%
+                else if (r < 0.42) reachType = 'sp';      // 30%
+                else               reachType = 'normal';  // 58%
+            } else {
+                reachType = 'zenkaiten';
+            }
+
+            // ★ 全回転の場合は3図柄すべてを同じ数字でシャッフル継続
+            if (isZenkaiten) {
+                shuffleInterval = setInterval(() => {
+                    const n = Math.floor(Math.random() * 9) + 1;
+                    slotEls.forEach(el => el.innerText = n);
+                }, 80);
+            }
+
+            // ★ bodyにリーチクラスを付与（背景・液晶色が変わる）
+            applyReachClass(reachType);
+
             setTimeout(() => {
                 clearInterval(shuffleInterval);
                 slotEls[1].innerText = centerNum;
-                slotEls[1].style.color = '#fff'; 
-                document.getElementById('game-container').classList.remove('reach-board-effect');
-                document.getElementById('digital-screen').classList.remove('reach-slot-effect');
+                slotEls[1].style.color = '#fff';
+                clearReachClass();
                 finishSpin(isWin);
-            }, reachWaitTime); 
-        } else {
+            }, reachWaitTime);        } else {
             setTimeout(() => {
                 clearInterval(shuffleInterval);
                 slotEls[1].innerText = centerNum;
@@ -253,6 +286,87 @@ function checkAndSpin() {
         }
     }, rightStopTime);
 }
+
+// ★ リーチ種類に応じてbodyにクラスを付与しテキストを表示
+function applyReachClass(type) {
+    const textMap = {
+        normal:   '',
+        sp:       '⚠ 使徒襲来 ⚠',
+        supersp:  '★ EVANGELION ★',
+        zenkaiten:'⚡ IMPACT !!! ⚡'
+    };
+    document.body.classList.add(`reach-${type}`);
+    if (reachTextEl) {
+        const text = textMap[type];
+        reachTextEl.innerText = text;
+        reachTextEl.style.display = text ? 'block' : 'none';
+    }
+}
+
+// ★ リーチ演出クラスを全解除
+function clearReachClass() {
+    document.body.classList.remove('reach-normal', 'reach-sp', 'reach-supersp', 'reach-zenkaiten');
+    if (reachTextEl) {
+        reachTextEl.style.display = 'none';
+        reachTextEl.innerText = '';
+    }
+}
+
+// ★ ロンギヌス演出 → 保留を昇格させる
+function triggerLonginusChange(isWin) {
+    if (reserves.length === 0) return;
+
+    // 槍の軌跡ラインを表示
+    if (longinusOverlayEl) {
+        const line = document.createElement('div');
+        line.classList.add('longinus-line');
+        longinusOverlayEl.appendChild(line);
+        longinusOverlayEl.style.display = 'block';
+
+        // 0.3秒後にフラッシュ
+        setTimeout(() => {
+            longinusOverlayEl.innerHTML = '';
+            const flash = document.createElement('div');
+            flash.classList.add('longinus-flash');
+            longinusOverlayEl.appendChild(flash);
+
+            // フラッシュと同時に保留を昇格
+            upgradeReserve(isWin);
+
+            // 0.5秒後に後始末
+            setTimeout(() => {
+                longinusOverlayEl.style.display = 'none';
+                longinusOverlayEl.innerHTML = '';
+            }, 500);
+        }, 300);
+    }
+}
+
+// ★ 先頭の保留を1段階昇格させる
+function upgradeReserve(isWin) {
+    if (reserves.length === 0) return;
+
+    // 昇格テーブル（低 → 高の順）
+    const upgradeMap = {
+        white:   'blue',
+        blue:    'green',
+        green:   isWin ? 'red'   : 'green',   // ハズレは緑止まり
+        red:     isWin ? 'shoki' : 'red',
+        shoki:   isWin ? 'rainbow' : 'shoki',
+        rainbow: 'rainbow' // 虹は変化なし
+    };
+
+    const target = reserves[0];
+    const nextColor = upgradeMap[target.color] || target.color;
+
+    // 色が変わる場合のみ更新
+    if (nextColor !== target.color) {
+        target.color = nextColor;
+        if (isWin && Math.random() < 0.4) target.shake = true; // 昇格時に震動付加
+        updateReserveUI();
+    }
+}
+
 
 function finishSpin(isWin) {
     if (isWin) {
