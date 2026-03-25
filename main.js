@@ -49,9 +49,12 @@ const JACKPOT_PROB_NORMAL = 1 / 2;
 const JACKPOT_PROB_ST     = 1 / 99;
 
 // 保留データを管理する配列
-let reserves = []; 
+// ★変更：保留データを「ヘソ」と「電チュー」に分割
+let hesoReserves = []; 
+let denchuReserves = []; 
 const MAX_RESERVE = 4;  
 let currentPower = 50;
+let currentSpinType = null; // ★追加：今どっちの保留を消化しているか記憶する用const MAX_RESERVE = 4;  
 
 // ラウンド管理
 let currentRound = 0;
@@ -68,8 +71,9 @@ const countDisplayEl    = document.getElementById('count-display');
 const jackpotInfoEl     = document.getElementById('jackpot-info');
 const ballCountEl       = document.getElementById('ball-count');
 const startCountEl      = document.getElementById('start-count');
-const reserveIcons      = document.querySelectorAll('.reserve-icon'); 
-const powerBarFill      = document.getElementById('power-bar-fill');
+// ★変更：保留アイコンの取得も2つに分ける
+const hesoIcons   = document.querySelectorAll('.heso-icon'); 
+const denchuIcons = document.querySelectorAll('.denchu-icon');const powerBarFill      = document.getElementById('power-bar-fill');
 const jackpotMsgEl      = document.getElementById('jackpot-message');
 const canvasEl          = document.querySelector('canvas');
 // ★ 追加DOM
@@ -136,16 +140,17 @@ function endMode() {
     applyModeVisuals();
 }
 
-// 保留UIの更新
+// ★修正：保留UIの更新（2列両方とも更新する）
 function updateReserveUI() {
-    reserveIcons.forEach((icon, index) => {
-        icon.className = 'reserve-icon';
-        if (index < reserves.length) {
-            icon.classList.add(`res-${reserves[index].color}`);
-        }
+    hesoIcons.forEach((icon, index) => {
+        icon.className = 'reserve-icon heso-icon';
+        if (index < hesoReserves.length) icon.classList.add(`res-${hesoReserves[index].color}`);
+    });
+    denchuIcons.forEach((icon, index) => {
+        icon.className = 'reserve-icon denchu-icon';
+        if (index < denchuReserves.length) icon.classList.add(`res-${denchuReserves[index].color}`);
     });
 }
-
 function updatePower(change) {
     currentPower += change;
     if (currentPower < 0) currentPower = 0;
@@ -170,41 +175,54 @@ function handleFire() {
     }
 }
 
-function addReserve() {
-    if (reserves.length >= MAX_RESERVE || isJackpot) return;
+// ★修正：引数で「heso」か「denchu」を受け取り、別々の配列に積む
+function addReserve(type) {
+    const targetArray = (type === 'denchu') ? denchuReserves : hesoReserves;
+
+    if (targetArray.length >= MAX_RESERVE || isJackpot) return;
 
     const isWin = Math.random() < getJackpotProbability();
     let color = 'white';
     let shake = false;
 
+    // （当たりの色抽選などはそのまま！）
     if (isWin) {
         const r = Math.random();
-        if (r < 0.05)       { color = 'rainbow'; }           // 5%：虹（ほぼ確定）
-        else if (r < 0.20)  { color = 'shoki'; }             // 15%：初号機
-        else if (r < 0.50)  { color = 'red'; }               // 30%：赤
-        else                { color = 'green'; }              // 50%：緑
-        if (Math.random() < 0.3) shake = true;               // 30%で震動付加
+        if (r < 0.05)       { color = 'rainbow'; }           
+        else if (r < 0.20)  { color = 'shoki'; }             
+        else if (r < 0.50)  { color = 'red'; }               
+        else                { color = 'green'; }              
+        if (Math.random() < 0.3) shake = true;               
     } else {
         const r = Math.random();
-        if (r < 0.02)       { color = 'shoki'; }             // 2%：初号機（ガセ）
-        else if (r < 0.05)  { color = 'rainbow'; shake = true; } // 3%：虹（ガセ）
-        else if (r < 0.10)  { color = 'red'; }               // 5%：赤（ガセ）
-        else if (r < 0.20)  { color = 'green'; }             // 10%：緑
-        else if (r < 0.40)  { color = 'blue'; }              // 20%：青
-                                                              // 残り：白
+        if (r < 0.02)       { color = 'shoki'; }             
+        else if (r < 0.05)  { color = 'rainbow'; shake = true; } 
+        else if (r < 0.10)  { color = 'red'; }               
+        else if (r < 0.20)  { color = 'green'; }             
+        else if (r < 0.40)  { color = 'blue'; }              
     }
 
-    reserves.push({ isWin, color, shake });
+    targetArray.push({ isWin, color, shake });
     updateReserveUI();
     checkAndSpin();
 }
-// ↓↓ ここから ↓↓
+// ★修正：checkAndSpin関数（割り込み処理と優先消化）
 function checkAndSpin() {
-    if (isSpinning || isJackpot || reserves.length === 0) return;
+    // どっちの配列にも保留がなければ回さない
+    if (isSpinning || isJackpot || (hesoReserves.length === 0 && denchuReserves.length === 0)) return;
 
-    const currentData = reserves.shift(); 
+    let currentData = null;
+
+    // ★激アツの絶対ルール：電チュー保留を「絶対に」優先して消化する！！
+    if (denchuReserves.length > 0) {
+        currentData = denchuReserves.shift();
+        currentSpinType = 'denchu'; // 電チュー消化中と記録
+    } else if (hesoReserves.length > 0) {
+        currentData = hesoReserves.shift();
+        currentSpinType = 'heso'; // ヘソ消化中と記録
+    }
+
     updateReserveUI(); 
-    
     isSpinning = true;
 
     // ★ 変動のたびに残り回転数を減らす
@@ -212,7 +230,6 @@ function checkAndSpin() {
     
     const isRush = (gameMode === 'st' || gameMode === 'tanjun');
     const isWin = currentData.isWin;
-
     // ★ ロンギヌス演出（保留変化）の抽選
     if (reserves.length > 0) {
         const changeProb = isWin ? 0.4 : 0.05;
