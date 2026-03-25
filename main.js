@@ -45,7 +45,7 @@ let gameMode = 'normal';
 let modeSpinsLeft = 0;
 
 // ★ 大当たり確率
-const JACKPOT_PROB_NORMAL = 1 / 319;
+const JACKPOT_PROB_NORMAL = 1 / 2;
 const JACKPOT_PROB_ST     = 1 / 99;
 
 // 保留データを管理する配列
@@ -198,6 +198,7 @@ function addReserve() {
     updateReserveUI();
     checkAndSpin();
 }
+// ↓↓ ここから ↓↓
 function checkAndSpin() {
     if (isSpinning || isJackpot || reserves.length === 0) return;
 
@@ -208,8 +209,20 @@ function checkAndSpin() {
 
     // ★ 変動のたびに残り回転数を減らす
     countDownSpin();
+    
+    const isRush = (gameMode === 'st' || gameMode === 'tanjun');
+    const isWin = currentData.isWin;
 
-    const isWin = currentData.isWin; 
+    // ★ ロンギヌス演出（保留変化）の抽選
+    if (reserves.length > 0) {
+        const changeProb = isWin ? 0.4 : 0.05;
+        if (Math.random() < changeProb) {
+            const delay = isRush
+                ? 500 + Math.random() * 1000
+                : 1500 + Math.random() * 2000;
+            setTimeout(() => triggerLonginusChange(isWin), delay);
+        }
+    }
 
     let leftNum, rightNum, centerNum;
 
@@ -228,65 +241,92 @@ function checkAndSpin() {
         }
     }
 
+    // ★ 修正箇所：個別に止まるようにフラグ管理
+    let spinning = [true, true, true];
+
     let shuffleInterval = setInterval(() => {
-        slotEls.forEach(el => el.innerText = Math.floor(Math.random() * 9) + 1);
+        if (spinning[0]) slotEls[0].innerText = Math.floor(Math.random() * 9) + 1;
+        if (spinning[1]) slotEls[1].innerText = Math.floor(Math.random() * 9) + 1;
+        if (spinning[2]) slotEls[2].innerText = Math.floor(Math.random() * 9) + 1;
     }, 50);
 
-// ★ モードに応じて変動時間を切り替える
-    const isRush = (gameMode === 'st' || gameMode === 'tanjun');
-    const leftStopTime  = isRush ? 200 : 300; // 左図柄が止まるまでの時間
-    const rightStopTime = isRush ? 200 : 300; // 右図柄が止まるまでの時間
-    const reachWaitTime = isRush ? 200 : 300; // リーチ後に中図柄が止まるまでの時間
-    const hazureWaitTime= isRush ? 200 : 300; // ハズレ確定までの時間
+    // モードに応じて変動時間を切り替える（少しタメを作るために時間を調整しています）
+    const leftStopTime   = isRush ? 400 : 1000;
+    const rightStopTime  = isRush ? 800 : 2000;
+    const reachWaitTime  = isRush ? 2500 : 6000; 
+    const hazureWaitTime = isRush ? 1200 : 2500;
 
-    setTimeout(() => { slotEls[0].innerText = leftNum; }, leftStopTime);
+    // 左図柄の停止
+    setTimeout(() => { 
+        spinning[0] = false; 
+        slotEls[0].innerText = leftNum; 
+    }, leftStopTime);
+
+    // 右図柄の停止
     setTimeout(() => {
+        spinning[2] = false;
         slotEls[2].innerText = rightNum;
-if (leftNum === rightNum) {
+
+        if (leftNum === rightNum) {
             slotEls[1].style.color = '#ff0055';
-            sound.playReach();
+            if(typeof sound !== 'undefined' && typeof sound.playReach === 'function') {
+                sound.playReach();
+            }
 
-            // ★ 全回転リーチ：大当たり時5%で発生（3図柄同時にシャッフル継続）
+            // 全回転リーチ：大当たり時5%で発生
             const isZenkaiten = isWin && Math.random() < 0.05;
-
-            // ★ リーチ種類を抽選（全回転以外）
             let reachType = 'normal';
+            
             if (!isZenkaiten) {
                 const r = Math.random();
-                if (r < 0.12)      reachType = 'supersp'; // 12%
-                else if (r < 0.42) reachType = 'sp';      // 30%
-                else               reachType = 'normal';  // 58%
+                if (r < 0.12)      reachType = 'supersp'; 
+                else if (r < 0.42) reachType = 'sp';      
+                else               reachType = 'normal';  
             } else {
                 reachType = 'zenkaiten';
             }
 
-            // ★ 全回転の場合は3図柄すべてを同じ数字でシャッフル継続
+            // ★ 全回転の場合は一度シャッフルを止めて、3つ揃った状態で回す
             if (isZenkaiten) {
+                clearInterval(shuffleInterval);
                 shuffleInterval = setInterval(() => {
                     const n = Math.floor(Math.random() * 9) + 1;
                     slotEls.forEach(el => el.innerText = n);
                 }, 80);
             }
 
-            // ★ bodyにリーチクラスを付与（背景・液晶色が変わる）
             applyReachClass(reachType);
 
+            // 中図柄の停止（リーチ後）
             setTimeout(() => {
                 clearInterval(shuffleInterval);
+                spinning[1] = false;
+                
+                // ★ 修正箇所：確実に最終的な当たり・ハズレ数字を上書き！
+                slotEls[0].innerText = leftNum;
+                slotEls[2].innerText = rightNum;
                 slotEls[1].innerText = centerNum;
+                
                 slotEls[1].style.color = '#fff';
                 clearReachClass();
                 finishSpin(isWin);
-            }, reachWaitTime);        } else {
+            }, reachWaitTime);        
+
+        } else {
+            // ハズレの場合の中図柄停止
             setTimeout(() => {
                 clearInterval(shuffleInterval);
+                spinning[1] = false;
+                
+                // ★ 修正箇所：確実に最終的なハズレ数字を上書き！
                 slotEls[1].innerText = centerNum;
+                
                 finishSpin(isWin);
             }, hazureWaitTime);
         }
     }, rightStopTime);
 }
-
+// ↑↑ ここまで ↑↑
 // ★ リーチ種類に応じてbodyにクラスを付与しテキストを表示
 function applyReachClass(type) {
     const textMap = {

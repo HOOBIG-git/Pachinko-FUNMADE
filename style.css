@@ -513,7 +513,7 @@ canvas {
 }
 
 /* 全回転リーチ：虹 */
-.reach-zenkaitenl #digital-screen {
+.reach-zenkaiten #digital-screen {
     border-color: #fff;
     box-shadow: 0 0 40px #fff, inset 0 0 40px #fff;
     background: linear-gradient(
