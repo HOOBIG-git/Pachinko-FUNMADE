@@ -12,7 +12,8 @@ const Engine = Matter.Engine,
 const engine = Engine.create();
 const canvasWidth = 500;
 const canvasHeight = 700;
-// ★ リーチテキストのDOM参照
+
+// リーチテキストのDOM参照
 const reachTextEl = document.getElementById('reach-text');
 
 const render = Render.create({
@@ -40,21 +41,20 @@ let startCount = 0;
 let isJackpot = false;
 let isSpinning = false; 
 
-// ★ ゲームモード管理 ('normal' | 'tanjun' | 'st')
+// ゲームモード管理 ('normal' | 'tanjun' | 'st')
 let gameMode = 'normal';
 let modeSpinsLeft = 0;
 
-// ★ 大当たり確率
-const JACKPOT_PROB_NORMAL = 1 / 2;
+// 大当たり確率
+const JACKPOT_PROB_NORMAL = 1 / 319;
 const JACKPOT_PROB_ST     = 1 / 99;
 
-// 保留データを管理する配列
-// ★変更：保留データを「ヘソ」と「電チュー」に分割
+// ★大改修：保留データを「ヘソ」と「電チュー」に完全分割
 let hesoReserves = []; 
 let denchuReserves = []; 
 const MAX_RESERVE = 4;  
 let currentPower = 50;
-let currentSpinType = null; // ★追加：今どっちの保留を消化しているか記憶する用const MAX_RESERVE = 4;  
+let currentSpinType = null; // ヘソと電チュー、どちらで当たったかを記憶する
 
 // ラウンド管理
 let currentRound = 0;
@@ -71,16 +71,16 @@ const countDisplayEl    = document.getElementById('count-display');
 const jackpotInfoEl     = document.getElementById('jackpot-info');
 const ballCountEl       = document.getElementById('ball-count');
 const startCountEl      = document.getElementById('start-count');
-// ★変更：保留アイコンの取得も2つに分ける
-const hesoIcons   = document.querySelectorAll('.heso-icon'); 
-const denchuIcons = document.querySelectorAll('.denchu-icon');const powerBarFill      = document.getElementById('power-bar-fill');
+const powerBarFill      = document.getElementById('power-bar-fill');
 const jackpotMsgEl      = document.getElementById('jackpot-message');
-const canvasEl          = document.querySelector('canvas');
-// ★ 追加DOM
 const modeDisplayEl     = document.getElementById('mode-display');
 const modeNameEl        = document.getElementById('mode-name');
 const modeSpinsLeftEl   = document.getElementById('mode-spins-left');
 const longinusOverlayEl = document.getElementById('longinus-overlay');
+
+// ★変更：保留アイコンのDOMも2段に分割
+const hesoIcons   = document.querySelectorAll('.heso-icon'); 
+const denchuIcons = document.querySelectorAll('.denchu-icon'); 
 
 const slotEls = [
     document.getElementById('slot-1'),
@@ -88,12 +88,12 @@ const slotEls = [
     document.getElementById('slot-3')
 ];
 
-// ★ 大当たり確率をモードに応じて返す
+// 大当たり確率をモードに応じて返す
 function getJackpotProbability() {
     return gameMode === 'st' ? JACKPOT_PROB_ST : JACKPOT_PROB_NORMAL;
 }
 
-// ★ モードに応じて盤面・パネルの見た目を切り替える
+// モードに応じて盤面・パネルの見た目を切り替える
 function applyModeVisuals() {
     document.body.classList.remove('mode-st', 'mode-tanjun');
     if (jackpotOverlayEl) {
@@ -122,7 +122,7 @@ function applyModeVisuals() {
     }
 }
 
-// ★ 残り回転数を1減らし、0になったらモード終了
+// 残り回転数を1減らし、0になったらモード終了
 function countDownSpin() {
     if (gameMode === 'normal') return;
     modeSpinsLeft--;
@@ -130,27 +130,33 @@ function countDownSpin() {
     if (modeSpinsLeft <= 0) endMode();
 }
 
-// ★ モード終了処理
+// モード終了処理
 function endMode() {
     gameMode = 'normal';
     modeSpinsLeft = 0;
-    // 電チューのフタを閉じる
     board.denchuLid.isSensor = false;
     board.denchuLid.render.visible = true;
     applyModeVisuals();
 }
 
-// ★修正：保留UIの更新（2列両方とも更新する）
+// ★修正：保留UIの更新（ヘソと電チュー両方）
 function updateReserveUI() {
     hesoIcons.forEach((icon, index) => {
         icon.className = 'reserve-icon heso-icon';
-        if (index < hesoReserves.length) icon.classList.add(`res-${hesoReserves[index].color}`);
+        if (index < hesoReserves.length) {
+            icon.classList.add(`res-${hesoReserves[index].color}`);
+            if (hesoReserves[index].shake) icon.classList.add('res-shake');
+        }
     });
     denchuIcons.forEach((icon, index) => {
         icon.className = 'reserve-icon denchu-icon';
-        if (index < denchuReserves.length) icon.classList.add(`res-${denchuReserves[index].color}`);
+        if (index < denchuReserves.length) {
+            icon.classList.add(`res-${denchuReserves[index].color}`);
+            if (denchuReserves[index].shake) icon.classList.add('res-shake');
+        }
     });
 }
+
 function updatePower(change) {
     currentPower += change;
     if (currentPower < 0) currentPower = 0;
@@ -175,7 +181,7 @@ function handleFire() {
     }
 }
 
-// ★修正：引数で「heso」か「denchu」を受け取り、別々の配列に積む
+// ★修正：引数で「heso」か「denchu」を受け取る
 function addReserve(type) {
     const targetArray = (type === 'denchu') ? denchuReserves : hesoReserves;
 
@@ -185,7 +191,6 @@ function addReserve(type) {
     let color = 'white';
     let shake = false;
 
-    // （当たりの色抽選などはそのまま！）
     if (isWin) {
         const r = Math.random();
         if (r < 0.05)       { color = 'rainbow'; }           
@@ -206,37 +211,34 @@ function addReserve(type) {
     updateReserveUI();
     checkAndSpin();
 }
-// ★修正：checkAndSpin関数（割り込み処理と優先消化）
+
 function checkAndSpin() {
-    // どっちの配列にも保留がなければ回さない
+    // どっちにも保留がなければ回さない
     if (isSpinning || isJackpot || (hesoReserves.length === 0 && denchuReserves.length === 0)) return;
 
     let currentData = null;
 
-    // ★激アツの絶対ルール：電チュー保留を「絶対に」優先して消化する！！
+    // ★激アツ！電チュー保留を絶対に優先して消化する
     if (denchuReserves.length > 0) {
         currentData = denchuReserves.shift();
-        currentSpinType = 'denchu'; // 電チュー消化中と記録
+        currentSpinType = 'denchu';
     } else if (hesoReserves.length > 0) {
         currentData = hesoReserves.shift();
-        currentSpinType = 'heso'; // ヘソ消化中と記録
+        currentSpinType = 'heso';
     }
 
     updateReserveUI(); 
     isSpinning = true;
-
-    // ★ 変動のたびに残り回転数を減らす
     countDownSpin();
     
     const isRush = (gameMode === 'st' || gameMode === 'tanjun');
     const isWin = currentData.isWin;
-    // ★ ロンギヌス演出（保留変化）の抽選
-    if (reserves.length > 0) {
+
+    // ★バグ修正：古い reserves 変数を削除して、両方の配列を見るように修正
+    if (hesoReserves.length > 0 || denchuReserves.length > 0) {
         const changeProb = isWin ? 0.4 : 0.05;
         if (Math.random() < changeProb) {
-            const delay = isRush
-                ? 500 + Math.random() * 1000
-                : 1500 + Math.random() * 2000;
+            const delay = isRush ? 500 + Math.random() * 1000 : 1500 + Math.random() * 2000;
             setTimeout(() => triggerLonginusChange(isWin), delay);
         }
     }
@@ -258,7 +260,6 @@ function checkAndSpin() {
         }
     }
 
-    // ★ 修正箇所：個別に止まるようにフラグ管理
     let spinning = [true, true, true];
 
     let shuffleInterval = setInterval(() => {
@@ -267,33 +268,26 @@ function checkAndSpin() {
         if (spinning[2]) slotEls[2].innerText = Math.floor(Math.random() * 9) + 1;
     }, 50);
 
-    // モードに応じて変動時間を切り替える（少しタメを作るために時間を調整しています）
     const leftStopTime   = isRush ? 400 : 1000;
     const rightStopTime  = isRush ? 800 : 2000;
     const reachWaitTime  = isRush ? 2500 : 6000; 
     const hazureWaitTime = isRush ? 1200 : 2500;
 
-    // 左図柄の停止
     setTimeout(() => { 
         spinning[0] = false; 
         slotEls[0].innerText = leftNum; 
     }, leftStopTime);
 
-    // 右図柄の停止
     setTimeout(() => {
         spinning[2] = false;
         slotEls[2].innerText = rightNum;
 
         if (leftNum === rightNum) {
             slotEls[1].style.color = '#ff0055';
-            if(typeof sound !== 'undefined' && typeof sound.playReach === 'function') {
-                sound.playReach();
-            }
+            if(typeof sound !== 'undefined' && typeof sound.playReach === 'function') sound.playReach();
 
-            // 全回転リーチ：大当たり時5%で発生
             const isZenkaiten = isWin && Math.random() < 0.05;
             let reachType = 'normal';
-            
             if (!isZenkaiten) {
                 const r = Math.random();
                 if (r < 0.12)      reachType = 'supersp'; 
@@ -303,7 +297,6 @@ function checkAndSpin() {
                 reachType = 'zenkaiten';
             }
 
-            // ★ 全回転の場合は一度シャッフルを止めて、3つ揃った状態で回す
             if (isZenkaiten) {
                 clearInterval(shuffleInterval);
                 shuffleInterval = setInterval(() => {
@@ -314,37 +307,28 @@ function checkAndSpin() {
 
             applyReachClass(reachType);
 
-            // 中図柄の停止（リーチ後）
             setTimeout(() => {
                 clearInterval(shuffleInterval);
                 spinning[1] = false;
-                
-                // ★ 修正箇所：確実に最終的な当たり・ハズレ数字を上書き！
                 slotEls[0].innerText = leftNum;
                 slotEls[2].innerText = rightNum;
                 slotEls[1].innerText = centerNum;
-                
                 slotEls[1].style.color = '#fff';
                 clearReachClass();
                 finishSpin(isWin);
             }, reachWaitTime);        
-
         } else {
-            // ハズレの場合の中図柄停止
             setTimeout(() => {
                 clearInterval(shuffleInterval);
                 spinning[1] = false;
-                
-                // ★ 修正箇所：確実に最終的なハズレ数字を上書き！
                 slotEls[1].innerText = centerNum;
-                
                 finishSpin(isWin);
             }, hazureWaitTime);
         }
     }, rightStopTime);
 }
-// ↑↑ ここまで ↑↑
-// ★ リーチ種類に応じてbodyにクラスを付与しテキストを表示
+
+// リーチ種類に応じてbodyにクラスを付与しテキストを表示
 function applyReachClass(type) {
     const textMap = {
         normal:   '',
@@ -360,7 +344,6 @@ function applyReachClass(type) {
     }
 }
 
-// ★ リーチ演出クラスを全解除
 function clearReachClass() {
     document.body.classList.remove('reach-normal', 'reach-sp', 'reach-supersp', 'reach-zenkaiten');
     if (reachTextEl) {
@@ -369,28 +352,24 @@ function clearReachClass() {
     }
 }
 
-// ★ ロンギヌス演出 → 保留を昇格させる
+// ロンギヌス演出
 function triggerLonginusChange(isWin) {
-    if (reserves.length === 0) return;
+    if (hesoReserves.length === 0 && denchuReserves.length === 0) return;
 
-    // 槍の軌跡ラインを表示
     if (longinusOverlayEl) {
         const line = document.createElement('div');
         line.classList.add('longinus-line');
         longinusOverlayEl.appendChild(line);
         longinusOverlayEl.style.display = 'block';
 
-        // 0.3秒後にフラッシュ
         setTimeout(() => {
             longinusOverlayEl.innerHTML = '';
             const flash = document.createElement('div');
             flash.classList.add('longinus-flash');
             longinusOverlayEl.appendChild(flash);
 
-            // フラッシュと同時に保留を昇格
             upgradeReserve(isWin);
 
-            // 0.5秒後に後始末
             setTimeout(() => {
                 longinusOverlayEl.style.display = 'none';
                 longinusOverlayEl.innerHTML = '';
@@ -399,31 +378,32 @@ function triggerLonginusChange(isWin) {
     }
 }
 
-// ★ 先頭の保留を1段階昇格させる
+// ★バグ修正：先頭の保留（電チュー優先）を1段階昇格させる
 function upgradeReserve(isWin) {
-    if (reserves.length === 0) return;
+    let targetArray = null;
+    if (denchuReserves.length > 0) targetArray = denchuReserves;
+    else if (hesoReserves.length > 0) targetArray = hesoReserves;
 
-    // 昇格テーブル（低 → 高の順）
+    if (!targetArray) return;
+
     const upgradeMap = {
         white:   'blue',
         blue:    'green',
-        green:   isWin ? 'red'   : 'green',   // ハズレは緑止まり
+        green:   isWin ? 'red'   : 'green', 
         red:     isWin ? 'shoki' : 'red',
         shoki:   isWin ? 'rainbow' : 'shoki',
-        rainbow: 'rainbow' // 虹は変化なし
+        rainbow: 'rainbow' 
     };
 
-    const target = reserves[0];
+    const target = targetArray[0];
     const nextColor = upgradeMap[target.color] || target.color;
 
-    // 色が変わる場合のみ更新
     if (nextColor !== target.color) {
         target.color = nextColor;
-        if (isWin && Math.random() < 0.4) target.shake = true; // 昇格時に震動付加
+        if (isWin && Math.random() < 0.4) target.shake = true; 
         updateReserveUI();
     }
 }
-
 
 function finishSpin(isWin) {
     if (isWin) {
@@ -439,7 +419,6 @@ function finishSpin(isWin) {
 function triggerJackpot() {
     isJackpot = true;
 
-    // ★ 大当たり中はモードオーバーレイを一旦消す
     if (jackpotOverlayEl) {
         jackpotOverlayEl.classList.remove('st-effect', 'tanjun-effect');
         jackpotOverlayEl.style.display = 'none';
@@ -452,7 +431,7 @@ function triggerJackpot() {
     jackpotMsgEl.style.display = 'block';
     jackpotInfoEl.style.display = 'none'; 
     
-    sound.playMegaJackpot();
+    if(typeof sound !== 'undefined' && typeof sound.playMegaJackpot === 'function') sound.playMegaJackpot();
     currentRound = 1;
 
     setTimeout(() => {
@@ -497,7 +476,6 @@ function endRound() {
         currentRound++;
         setTimeout(startRound, 2000); 
     } else {
-        // ★ 全ラウンド終了 → 59%で確変(ST)、41%で時短に分岐
         setTimeout(() => {
             isJackpot = false;
             isSpinning = false;
@@ -505,15 +483,21 @@ function endRound() {
             jackpotInfoEl.style.display = 'none';
             slotEls.forEach(el => el.innerText = '0');
 
-            if (Math.random() < 0.59) {
+            // ★激アツのオマケ実装：電チューでの当たりは【100% ST突入】！！
+            if (currentSpinType === 'denchu') {
                 gameMode = 'st';
                 modeSpinsLeft = 163;
             } else {
-                gameMode = 'tanjun';
-                modeSpinsLeft = 100;
+                // ヘソでの当たりは59%でST、41%で時短
+                if (Math.random() < 0.59) {
+                    gameMode = 'st';
+                    modeSpinsLeft = 163;
+                } else {
+                    gameMode = 'tanjun';
+                    modeSpinsLeft = 100;
+                }
             }
 
-            // ★ ST/時短中は電チューを常時開放
             board.denchuLid.isSensor = true;
             board.denchuLid.render.visible = false;
 
@@ -527,7 +511,7 @@ function endRound() {
 // --- 操作イベント ---
 window.addEventListener('mousedown', (e) => { 
     if(e.button === 0) isShooting = true;
-    sound.init();
+    if(typeof sound !== 'undefined') sound.init();
 });
 window.addEventListener('mouseup', (e) => { if(e.button === 0) isShooting = false; });
 window.addEventListener('mouseleave', () => { isShooting = false; });
@@ -543,36 +527,30 @@ window.addEventListener('keyup', (event) => {
     if (event.key === 'Enter') isShooting = false;
 });
 
-// --- タッチ操作（スマホ用） ---
+// --- タッチ操作 ---
 let touchStartY = 0;
-
-// 画面タップ長押し → 発射
 window.addEventListener('touchstart', (e) => {
     touchStartY = e.touches[0].clientY;
     isShooting = true;
-    sound.init();
+    if(typeof sound !== 'undefined') sound.init();
 }, { passive: true });
-
 window.addEventListener('touchend', () => {
     isShooting = false;
 });
-
-// 上下スワイプ → パワー調整
 window.addEventListener('touchmove', (e) => {
     const currentY = e.touches[0].clientY;
-    const deltaY = touchStartY - currentY; // 上スワイプ = 正の値
-
+    const deltaY = touchStartY - currentY;
     if (Math.abs(deltaY) > 10) {
         updatePower(deltaY > 0 ? 3 : -3);
-        touchStartY = currentY; // 基準点を更新（連続スワイプ対応）
+        touchStartY = currentY; 
     }
 }, { passive: true });
 
-// PCボタンは念のため残す（スマホでは非表示）
 const btnPowerUp   = document.getElementById('btn-power-up');
 const btnPowerDown = document.getElementById('btn-power-down');
 if (btnPowerUp)   btnPowerUp.addEventListener('mousedown',   () => { updatePower(5);  });
 if (btnPowerDown) btnPowerDown.addEventListener('mousedown', () => { updatePower(-5); });
+
 Events.on(engine, 'beforeUpdate', () => {
     if (isShooting) handleFire();
 });
@@ -585,24 +563,36 @@ Events.on(engine, 'collisionStart', function(event) {
 
         if ((bodyA.label === 'ball' && bodyB.label === 'peg') ||
             (bodyB.label === 'ball' && bodyA.label === 'peg')) {
-            sound.playPegHit();
+            if(typeof sound !== 'undefined' && typeof sound.playPegHit === 'function') sound.playPegHit();
         }
 
-        // ヘソ入賞
+        // --- ★ヘソ入賞（特図1） ---
         if ((bodyA.label === 'ball' && bodyB.label === 'chucker') ||
             (bodyB.label === 'ball' && bodyA.label === 'chucker')) {
-            sound.playChuckerIn();
+            if(typeof sound !== 'undefined' && typeof sound.playChuckerIn === 'function') sound.playChuckerIn();
             startCount++;
             if (startCountEl) startCountEl.innerText = startCount;
             ballCount += 3; 
             if (ballCountEl) ballCountEl.innerText = ballCount;
-            addReserve();
+            
+            addReserve('heso'); // ヘソ保留を追加！
 
             const ballToRemove = bodyA.label === 'ball' ? bodyA : bodyB;
             if (ballToRemove) Composite.remove(engine.world, ballToRemove);
         }
 
-        // アウト処理
+        // --- 隠しボーナスゲート ---
+        if ((bodyA.label === 'ball' && bodyB.label === 'bonus_gate') ||
+            (bodyB.label === 'ball' && bodyA.label === 'bonus_gate')) {
+            if(typeof sound !== 'undefined' && typeof sound.playBonus === 'function') sound.playBonus();
+            ballCount += 2; 
+            if (ballCountEl) ballCountEl.innerText = ballCount;
+            if (ballCountEl) {
+                ballCountEl.style.textShadow = '0 0 10px #00ff00, 0 0 20px #00ff00';
+                setTimeout(() => { ballCountEl.style.textShadow = ''; }, 200);
+            }
+        }
+
         if (bodyA.label === 'out' || bodyB.label === 'out') {
             const ballToRemove = bodyA.label === 'ball' ? bodyA : bodyB;
             if (ballToRemove) {
@@ -614,14 +604,12 @@ Events.on(engine, 'collisionStart', function(event) {
             }
         }
 
-        // スルーチャッカー
         if ((bodyA.label === 'ball' && bodyB.label === 'through') ||
             (bodyB.label === 'ball' && bodyA.label === 'through')) {
-            // ★ ST/時短中は電チューが常時開放なので処理不要
             if (gameMode === 'normal') {
                 board.denchuLid.isSensor = true;
                 board.denchuLid.render.visible = false;
-                sound.playChuckerIn();
+                if(typeof sound !== 'undefined' && typeof sound.playChuckerIn === 'function') sound.playChuckerIn();
                 setTimeout(() => {
                     board.denchuLid.isSensor = false;
                     board.denchuLid.render.visible = true;
@@ -629,7 +617,7 @@ Events.on(engine, 'collisionStart', function(event) {
             }
         }
         
-        // 電チュー入賞
+        // --- ★電チュー入賞（特図2） ---
         if ((bodyA.label === 'ball' && bodyB.label === 'denchu') ||
             (bodyB.label === 'ball' && bodyA.label === 'denchu')) {
             
@@ -642,16 +630,14 @@ Events.on(engine, 'collisionStart', function(event) {
 
             ballCount += 1;
             if (ballCountEl) ballCountEl.innerText = ballCount;
-            sound.playChuckerIn();
+            if(typeof sound !== 'undefined' && typeof sound.playChuckerIn === 'function') sound.playChuckerIn();
 
-            // ★ ヘソと同じく保留を積んでスロットを回す
-            addReserve();
+            addReserve('denchu'); // 電チュー保留を追加！
 
             const ballToRemove = bodyA.label === 'ball' ? bodyA : bodyB;
             if (ballToRemove) Composite.remove(engine.world, ballToRemove);
         }    
 
-        // アタッカー入賞
         if ((bodyA.label === 'ball' && bodyB.label === 'attacker') ||
             (bodyB.label === 'ball' && bodyA.label === 'attacker')) {
             
@@ -662,13 +648,13 @@ Events.on(engine, 'collisionStart', function(event) {
 
             ballCount += 15; 
             if (ballCountEl) ballCountEl.innerText = ballCount;
-            sound.playAttackerHit();
+            if(typeof sound !== 'undefined' && typeof sound.playAttackerHit === 'function') sound.playAttackerHit();
             
             if (isJackpot) {
                 currentCount++;
                 if (countDisplayEl) countDisplayEl.innerText = currentCount;
                 if (currentCount >= MAX_COUNT) {
-                    clearTimeout(roundTimer); // ★ タイマー二重実行を防ぐ
+                    clearTimeout(roundTimer); 
                     endRound();
                 }
             }
