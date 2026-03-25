@@ -625,7 +625,7 @@ Events.on(engine, 'collisionStart', function(event) {
                 setTimeout(() => { flashOverlayEl.style.display = 'none'; }, 100);
             }
 
-            ballCount += 15; 
+            ballCount += 100; 
             if (ballCountEl) ballCountEl.innerText = ballCount;
             if(typeof sound !== 'undefined' && typeof sound.playAttackerHit === 'function') sound.playAttackerHit();
             
